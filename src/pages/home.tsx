@@ -7,6 +7,11 @@ import { ClientListTable } from '../components/ClientListTable';
 import { OverviewCards } from '../components/OverviewCards';
 import { AnalyticsSection } from '../components/AnalyticsSection';
 import { AddEntryForm } from '../components/AddEntryForm';
+import { RecentActivities } from '../components/RecentActivities';
+import { ClientRetentionCards } from '../components/ClientRetentionCards';
+import { PredictiveCards } from '../components/PredictiveCards';
+import { ExpenseListTable } from '../components/ExpenseListTable';
+import { Sidebar } from '../components/Sidebar';
 
 const sampleClients: Client[] = [
   { id: 'c1', name: 'Alice Johnson', service: 'Gel nails', date: '2025-10-01' },
@@ -29,8 +34,9 @@ export default function ClientRevenueApp() {
   const [txType, setTxType] = useState<'income' | 'expense'>('income');
   const [customService, setCustomService] = useState('');
   const [showAnalytics, setShowAnalytics] = useState(false);
-  const [showClientList, setShowClientList] = useState(false);
-  
+  const [showClientList, setShowClientList] = useState(true);
+  const [currentPage, setCurrentPage] = useState<'overview' | 'clients' | 'expenses' | 'analytics'>('overview');
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [formName, setFormName] = useState('');
   const [formService, setFormService] = useState('');
   const [formCustomService, setFormCustomService] = useState('');
@@ -111,6 +117,68 @@ export default function ClientRevenueApp() {
     }));
   }, [monthClients, incomeTransactions]);
 
+  // Client retention calculations
+  const clientVisits = useMemo<Record<string, string[]>>(() => {
+    const visits: Record<string, string[]> = {};
+    monthClients.forEach(c => {
+      if (!visits[c.name]) visits[c.name] = [];
+      visits[c.name].push(c.date);
+    });
+    return visits;
+  }, [monthClients]);
+
+  const uniqueClients = Object.keys(clientVisits).length;
+  const repeatClients = Object.values(clientVisits).filter(v => v.length > 1).length;
+  const retentionRate = uniqueClients > 0 ? (repeatClients / uniqueClients * 100).toFixed(1) : '0';
+
+  const averageDays = useMemo(() => {
+    let totalAvg = 0;
+    let numRepeat = 0;
+    Object.values(clientVisits).forEach(visits => {
+      if (visits.length > 1) {
+        const sortedDates = visits.map(d => new Date(d)).sort((a, b) => a.getTime() - b.getTime());
+        let sumDiff = 0;
+        for (let i = 1; i < sortedDates.length; i++) {
+          sumDiff += (sortedDates[i].getTime() - sortedDates[i - 1].getTime()) / (1000 * 60 * 60 * 24);
+        }
+        totalAvg += sumDiff / (sortedDates.length - 1);
+        numRepeat++;
+      }
+    });
+    return numRepeat > 0 ? (totalAvg / numRepeat).toFixed(1) : '0';
+  }, [clientVisits]);
+
+  // Predictive calculations
+  const monthlyIncome = useMemo<Record<string, number>>(() => {
+    const months: Record<string, number> = {};
+    transactions.filter(t => t.type === 'income').forEach(t => {
+      const monthKey = t.date.slice(0, 7);
+      months[monthKey] = (months[monthKey] || 0) + Number(t.amount);
+    });
+    return months;
+  }, [transactions]);
+
+  const numMonths = Object.keys(monthlyIncome).length;
+  const avgMonthlyIncome = numMonths > 0 ? Object.values(monthlyIncome).reduce((a, b) => a + b, 0) / numMonths : 0;
+  const forecastedIncome = (avgMonthlyIncome * 1.05).toFixed(2);
+
+  const monthlyBookings = useMemo<Record<string, number>>(() => {
+    const months: Record<string, number> = {};
+    transactions.filter(t => t.type === 'income').forEach(t => {
+      const monthKey = t.date.slice(0, 7);
+      months[monthKey] = (months[monthKey] || 0) + 1;
+    });
+    return months;
+  }, [transactions]);
+
+  const avgMonthlyBookings = numMonths > 0 ? Object.values(monthlyBookings).reduce((a, b) => a + b, 0) / numMonths : 0;
+  const predictedBookings = Math.round(avgMonthlyBookings);
+
+  // Recent activities
+  const recentTransactions = useMemo(() => {
+    return [...monthTransactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
+  }, [monthTransactions]);
+
   const handleAdd = useCallback(() => {
     let clientId = '';
 
@@ -150,63 +218,97 @@ export default function ClientRevenueApp() {
     setCustomService('');
   }, [txType, formName, formService, formCustomService, formCategory, formAmount, formDate]);
 
+  const renderContent = () => {
+    switch (currentPage) {
+      case 'overview':
+        return (
+          <>
+            <OverviewCards
+              totalIncome={totalIncome}
+              totalExpenses={totalExpenses}
+              balance={balance}
+              showAnalytics={showAnalytics}
+              onToggleAnalytics={() => setShowAnalytics(!showAnalytics)}
+            />
+            <RecentActivities transactions={recentTransactions} clients={monthClients} />
+            <ClientRetentionCards retentionRate={retentionRate} averageDays={averageDays} />
+            <PredictiveCards forecastedIncome={forecastedIncome} predictedBookings={predictedBookings} />
+            <AddEntryForm
+              txType={txType}
+              formName={formName}
+              formService={formService}
+              formCustomService={formCustomService}
+              formCategory={formCategory}
+              formAmount={formAmount}
+              formDate={formDate}
+              customService={customService}
+              onTxTypeChange={setTxType}
+              onFormNameChange={setFormName}
+              onFormServiceChange={setFormService}
+              onFormCustomServiceChange={setFormCustomService}
+              onFormCategoryChange={setFormCategory}
+              onFormAmountChange={setFormAmount}
+              onFormDateChange={setFormDate}
+              onCustomServiceChange={setCustomService}
+              onSubmit={handleAdd}
+            />
+          </>
+        );
+      case 'clients':
+        return (
+          <>
+            <ClientCounter
+              count={monthClients.length}
+              selectedMonth={selectedMonth}
+              showClientList={showClientList}
+              onToggle={() => setShowClientList(!showClientList)}
+            />
+            <ClientListTable clients={clientDetails} show={true} />
+          </>
+        );
+      case 'expenses':
+        return (
+          <ExpenseListTable expenses={expenseTransactions} />
+        );
+      case 'analytics':
+        return (
+          <AnalyticsSection
+            show={true}
+            totalIncome={totalIncome}
+            totalExpenses={totalExpenses}
+            pieData={pieData}
+            serviceData={serviceData}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 p-3 sm:p-6 max-w-6xl mx-auto font-sans">
-      <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-6 text-center text-blue-900">
-        Money Tracker
-      </h1>
-
-      <MonthFilter
-        selectedMonth={selectedMonth}
-        selectedYear={selectedYear}
-        onMonthChange={setSelectedMonth}
-        onYearChange={setSelectedYear}
-      />
-
-      <ClientCounter
-        count={monthClients.length}
-        selectedMonth={selectedMonth}
-        showClientList={showClientList}
-        onToggle={() => setShowClientList(!showClientList)}
-      />
-
-      <ClientListTable clients={clientDetails} show={showClientList} />
-
-      <OverviewCards
-        totalIncome={totalIncome}
-        totalExpenses={totalExpenses}
-        balance={balance}
-        showAnalytics={showAnalytics}
-        onToggleAnalytics={() => setShowAnalytics(!showAnalytics)}
-      />
-
-      <AnalyticsSection
-        show={showAnalytics}
-        totalIncome={totalIncome}
-        totalExpenses={totalExpenses}
-        pieData={pieData}
-        serviceData={serviceData}
-      />
-
-      <AddEntryForm
-        txType={txType}
-        formName={formName}
-        formService={formService}
-        formCustomService={formCustomService}
-        formCategory={formCategory}
-        formAmount={formAmount}
-        formDate={formDate}
-        customService={customService}
-        onTxTypeChange={setTxType}
-        onFormNameChange={setFormName}
-        onFormServiceChange={setFormService}
-        onFormCustomServiceChange={setFormCustomService}
-        onFormCategoryChange={setFormCategory}
-        onFormAmountChange={setFormAmount}
-        onFormDateChange={setFormDate}
-        onCustomServiceChange={setCustomService}
-        onSubmit={handleAdd}
-      />
+    <div className="min-h-screen bg-gradient-to-b font-sans">
+      <div className="flex">
+        <Sidebar 
+          currentPage={currentPage} 
+          onPageChange={setCurrentPage}
+          isOpen={isMenuOpen}
+          onToggleMenu={() => setIsMenuOpen(!isMenuOpen)}
+        />
+        <div className="flex-1 lg:ml-56 p-3 sm:p-6 max-w-6xl mx-auto">
+          <div className="mb-4 sm:mb-6">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-blue-900">
+              Money Tracker
+            </h1>
+          </div>
+          <MonthFilter
+            selectedMonth={selectedMonth}
+            selectedYear={selectedYear}
+            onMonthChange={setSelectedMonth}
+            onYearChange={setSelectedYear}
+          />
+          {renderContent()}
+        </div>
+      </div>
     </div>
   );
 }
