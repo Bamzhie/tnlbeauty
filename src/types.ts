@@ -19,6 +19,7 @@ export interface ClientDetail {
   name: string;
   service: string;
   amount: number;
+  date?: string;
 }
 
 export interface ServiceCount {
