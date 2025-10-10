@@ -1,4 +1,3 @@
-import React from 'react';
 
    interface MonthFilterProps {
      selectedMonth: string | number;
