@@ -14,7 +14,7 @@ interface SidebarProps {
   onToggleMenu: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, isOpen, onToggleMenu }) => {
+export function Sidebar  ({ currentPage, onPageChange, isOpen, onToggleMenu }: any)  {
   const navigation = [
     { name: 'Overview', id: 'overview', icon: LayoutDashboard },
     { name: 'Clients', id: 'clients', icon: Users },
@@ -24,20 +24,30 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, isO
 
   return (
     <>
-      {/* Mobile Navbar (Hamburger Menu) */}
-      <div className="lg:hidden">
+      {/* Mobile Hamburger - FIXED POSITIONING */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-40 px-4 py-3 flex items-center justify-between">
         <button 
-          className="fixed top-4 left-4 p-2 text-gray-900 bg-white border border-gray-200 rounded-lg shadow-sm z-50"
+          className="p-2 text-gray-900 hover:bg-gray-100 rounded-lg"
           onClick={onToggleMenu}
           aria-label="Toggle menu"
         >
           <Menu size={24} />
         </button>
-        {isOpen && (
+        <h1 className="text-lg font-bold text-blue-900">Money Tracker</h1>
+        <div className="w-10"></div>
+      </div>
+
+      {/* Mobile Menu Overlay */}
+      {isOpen && (
+        <>
           <div 
-            className="fixed top-14 left-4 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
-          >
-            {/* Navigation */}
+            className="fixed inset-0 bg-gray-900/50 z-40 lg:hidden"
+            onClick={onToggleMenu}
+          />
+          <div className="fixed top-0 left-0 bottom-0 w-64 bg-white z-50 lg:hidden shadow-xl">
+            <div className="p-6 border-b border-gray-200">
+              <h1 className="text-xl font-bold text-blue-900">Money Tracker</h1>
+            </div>
             <nav className="p-4">
               <ul className="space-y-2">
                 {navigation.map((item) => {
@@ -46,13 +56,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, isO
                     <li key={item.id}>
                       <button
                         onClick={() => {
-                          onPageChange(item.id as 'overview' | 'clients' | 'expenses' | 'analytics');
+                          onPageChange(item.id);
                           onToggleMenu();
                         }}
-                        className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors duration-200 w-full text-left ${
+                        className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors duration-200 w-full text-left ${
                           isActive
-                            ? 'bg-blue-50 text-blue-600 border-r-2 border-blue-500'
-                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                            ? 'bg-blue-50 text-blue-600'
+                            : 'text-gray-600 hover:bg-gray-50'
                         }`}
                       >
                         <item.icon className="w-5 h-5" />
@@ -64,42 +74,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, isO
               </ul>
             </nav>
           </div>
-        )}
-        {/* Overlay for mobile menu */}
-        {isOpen && (
-          <div 
-            className="fixed inset-0 bg-gray-900/30 z-40"
-            onClick={onToggleMenu}
-          ></div>
-        )}
-      </div>
+        </>
+      )}
 
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:block w-56 bg-white border-r border-gray-200 h-screen fixed left-0 top-0 flex flex-col">
-        {/* Logo Section */}
+      <aside className="hidden lg:block w-56 bg-white border-r border-gray-200 h-screen fixed left-0 top-0">
         <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center">
-            <div className="w-28 h-8 relative">
-              <h1 className="text-xl font-bold text-blue-900">
-                Money Tracker
-              </h1>
-            </div>
-          </div>
+          <h1 className="text-xl font-bold text-blue-900">Money Tracker</h1>
         </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 p-4">
+        <nav className="p-4">
           <ul className="space-y-2">
             {navigation.map((item) => {
               const isActive = currentPage === item.id;
               return (
                 <li key={item.id}>
                   <button
-                    onClick={() => onPageChange(item.id as 'overview' | 'clients' | 'expenses' | 'analytics')}
+                    onClick={() => onPageChange(item.id)}
                     className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors duration-200 w-full text-left ${
                       isActive
                         ? 'bg-blue-50 text-blue-600 border-r-2 border-blue-500'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        : 'text-gray-600 hover:bg-gray-50'
                     }`}
                   >
                     <item.icon className="w-5 h-5" />
@@ -114,3 +108,5 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, isO
     </>
   );
 };
+
+
