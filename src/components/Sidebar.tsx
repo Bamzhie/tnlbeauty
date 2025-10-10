@@ -33,7 +33,7 @@ export function Sidebar  ({ currentPage, onPageChange, isOpen, onToggleMenu }: a
         >
           <Menu size={24} />
         </button>
-        <h1 className="text-lg font-bold text-blue-900">Money Tracker</h1>
+        <h1 className="text-lg font-bold text-blue-900">Trackr</h1>
         <div className="w-10"></div>
       </div>
 
@@ -46,7 +46,7 @@ export function Sidebar  ({ currentPage, onPageChange, isOpen, onToggleMenu }: a
           />
           <div className="fixed top-0 left-0 bottom-0 w-64 bg-white z-50 lg:hidden shadow-xl">
             <div className="p-6 border-b border-gray-200">
-              <h1 className="text-xl font-bold text-blue-900">Money Tracker</h1>
+              <h1 className="text-xl font-bold text-blue-900">Trackr</h1>
             </div>
             <nav className="p-4">
               <ul className="space-y-2">
@@ -80,7 +80,7 @@ export function Sidebar  ({ currentPage, onPageChange, isOpen, onToggleMenu }: a
       {/* Desktop Sidebar */}
       <aside className="hidden lg:block w-56 bg-white border-r border-gray-200 h-screen fixed left-0 top-0">
         <div className="p-6 border-b border-gray-200">
-          <h1 className="text-xl font-bold text-blue-900">Money Tracker</h1>
+          <h1 className="text-xl font-bold text-blue-900">Trackr</h1>
         </div>
         <nav className="p-4">
           <ul className="space-y-2">
