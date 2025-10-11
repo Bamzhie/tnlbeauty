@@ -1,13 +1,14 @@
 import { useState } from 'react'
-import { Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { ClientDetail } from '../types'
 
 interface ClientListTableProps {
   clients?: ClientDetail[]
   show: boolean
+  onAddIncome?: () => void // Added prop for handling add income
 }
 
-export function ClientListTable  ({ clients, show }: any)  {
+export function ClientListTable({ clients, show, onAddIncome }: ClientListTableProps) {
   if (!show) return null;
 
   const [query, setQuery] = useState('');
@@ -26,9 +27,9 @@ export function ClientListTable  ({ clients, show }: any)  {
 
   return (
     <div>
-      {/* Search Bar - MOBILE OPTIMIZED */}
-      <div className="mb-4">
-        <div className="relative w-full">
+      {/* Search Bar and Add Button - MOBILE OPTIMIZED */}
+      <div className="mb-4 flex items-center gap-4">
+        <div className="relative flex-1">
           <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             value={query}
@@ -37,6 +38,13 @@ export function ClientListTable  ({ clients, show }: any)  {
             className="w-full px-3 py-2 pl-9 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
+        <button
+          onClick={onAddIncome}
+          className="hidden md:flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          Add Income
+        </button>
       </div>
 
       {/* Table - MOBILE CARD VIEW */}
@@ -124,4 +132,3 @@ export function ClientListTable  ({ clients, show }: any)  {
     </div>
   );
 };
-

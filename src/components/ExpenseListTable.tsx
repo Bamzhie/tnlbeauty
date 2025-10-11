@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import { Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { Transaction } from '../types'
 
 interface ExpenseListTableProps {
   expenses: Transaction[]
+  onAddExpense?: () => void // Added prop for handling add expense
 }
 
-export function ExpenseListTable ({ expenses }: any) {
+export function ExpenseListTable({ expenses, onAddExpense }: ExpenseListTableProps) {
   const [query, setQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const expensesPerPage = 10;
@@ -22,9 +23,9 @@ export function ExpenseListTable ({ expenses }: any) {
 
   return (
     <div>
-      {/* Search Bar */}
-      <div className="mb-4">
-        <div className="relative w-full">
+      {/* Search Bar and Add Button */}
+      <div className="mb-4 flex items-center gap-4">
+        <div className="relative flex-1">
           <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             value={query}
@@ -33,6 +34,13 @@ export function ExpenseListTable ({ expenses }: any) {
             className="w-full px-3 py-2 pl-9 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
+        <button
+          onClick={onAddExpense}
+          className="hidden md:flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          Add Expense
+        </button>
       </div>
 
       {/* Table */}

@@ -1,15 +1,15 @@
-// components/AddEntryModal.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 
 interface AddEntryModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: any) => void;
+  initialStep?: 'choose' | 'income' | 'expense'; // Added prop for initial step
 }
 
-export const AddEntryModal: React.FC<AddEntryModalProps> = ({ isOpen, onClose, onSubmit }) => {
-  const [step, setStep] = useState<'choose' | 'income' | 'expense'>('choose');
+export const AddEntryModal: React.FC<AddEntryModalProps> = ({ isOpen, onClose, onSubmit, initialStep = 'choose' }) => {
+  const [step, setStep] = useState<'choose' | 'income' | 'expense'>(initialStep);
   const [formData, setFormData] = useState({
     name: '',
     service: '',
@@ -18,6 +18,11 @@ export const AddEntryModal: React.FC<AddEntryModalProps> = ({ isOpen, onClose, o
     amount: '',
     date: new Date().toISOString().slice(0, 10),
   });
+
+  // Update step when initialStep changes
+  useEffect(() => {
+    setStep(initialStep);
+  }, [initialStep]);
 
   if (!isOpen) return null;
 

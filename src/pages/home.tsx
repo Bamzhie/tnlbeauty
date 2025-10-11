@@ -32,6 +32,7 @@ export default function ClientRevenueApp() {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [currentPage, setCurrentPage] = useState<'overview' | 'clients' | 'expenses' | 'analytics'>('overview');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalStep, setModalStep] = useState<'choose' | 'income' | 'expense'>('choose'); // Added to control modal step
 
   const monthTransactions = useMemo(() => {
     return transactions.filter(t => {
@@ -211,6 +212,17 @@ export default function ClientRevenueApp() {
     setIsModalOpen(false);
   }, [clients]);
 
+  // Handlers for add buttons
+  const handleAddIncome = useCallback(() => {
+    setModalStep('income');
+    setIsModalOpen(true);
+  }, []);
+
+  const handleAddExpense = useCallback(() => {
+    setModalStep('expense');
+    setIsModalOpen(true);
+  }, []);
+
   const renderContent = () => {
     switch (currentPage) {
       case 'overview':
@@ -328,7 +340,7 @@ export default function ClientRevenueApp() {
                   hideLabels={true}
                 />
               </div>
-              <ClientListTable clients={clientDetails} show={true} />
+              <ClientListTable clients={clientDetails} show={true} onAddIncome={handleAddIncome} />
             </div>
           </main>
         );
@@ -347,7 +359,7 @@ export default function ClientRevenueApp() {
                   hideLabels={true}
                 />
               </div>
-              <ExpenseListTable expenses={expenseTransactions} />
+              <ExpenseListTable expenses={expenseTransactions} onAddExpense={handleAddExpense} />
             </div>
           </main>
         );
@@ -398,6 +410,7 @@ export default function ClientRevenueApp() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleModalSubmit}
+        initialStep={modalStep} // Pass the initial step to the modal
       />
       <Toaster position="top-right" />
     </div>
