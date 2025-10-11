@@ -317,7 +317,17 @@ export default function ClientRevenueApp() {
         return (
           <main className="flex-1 bg-gray-50 min-h-screen lg:ml-56">
             <div className="pt-4 pb-20 lg:pb-8 lg:pt-8 p-4 sm:p-6 lg:p-8">
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">Clients</h1>
+              {/* Header with Month Filter */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Clients</h1>
+                <MonthFilter
+                  selectedMonth={selectedMonth}
+                  selectedYear={selectedYear}
+                  onMonthChange={setSelectedMonth}
+                  onYearChange={setSelectedYear}
+                  hideLabels={true}
+                />
+              </div>
               <ClientListTable clients={clientDetails} show={true} />
             </div>
           </main>
@@ -326,7 +336,17 @@ export default function ClientRevenueApp() {
         return (
           <main className="flex-1 bg-gray-50 min-h-screen lg:ml-56">
             <div className="pt-4 pb-20 lg:pb-8 lg:pt-8 p-4 sm:p-6 lg:p-8">
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">Expenses</h1>
+              {/* Header with Month Filter */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Expenses</h1>
+                <MonthFilter
+                  selectedMonth={selectedMonth}
+                  selectedYear={selectedYear}
+                  onMonthChange={setSelectedMonth}
+                  onYearChange={setSelectedYear}
+                  hideLabels={true}
+                />
+              </div>
               <ExpenseListTable expenses={expenseTransactions} />
             </div>
           </main>
@@ -335,7 +355,17 @@ export default function ClientRevenueApp() {
         return (
           <main className="flex-1 bg-gray-50 min-h-screen lg:ml-56">
             <div className="pt-4 pb-20 lg:pb-8 lg:pt-8 p-4 sm:p-6 lg:p-8">
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">Analytics</h1>
+              {/* Header with Month Filter */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Analytics</h1>
+                <MonthFilter
+                  selectedMonth={selectedMonth}
+                  selectedYear={selectedYear}
+                  onMonthChange={setSelectedMonth}
+                  onYearChange={setSelectedYear}
+                  hideLabels={true}
+                />
+              </div>
               <AnalyticsSection
                 show={true}
                 totalIncome={totalIncome}
