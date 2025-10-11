@@ -164,7 +164,7 @@ export default function ClientRevenueApp() {
   const predictedBookings = Math.round(avgMonthlyBookings);
 
   const recentTransactions = useMemo(() => {
-    return [...monthTransactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 3);
+    return [...monthTransactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 4);
   }, [monthTransactions]);
 
   const handleModalSubmit = useCallback((data: any) => {
@@ -239,32 +239,99 @@ export default function ClientRevenueApp() {
 
         {/* Stats Overview */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-          <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-blue-300">
-            <p className="text-xs sm:text-sm text-gray-600 mb-1">Total Income</p>
-            <p className="text-lg sm:text-2xl font-bold text-blue-700">£{totalIncome.toFixed(2)}</p>
-          </div>
           <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-green-300">
+            <p className="text-xs sm:text-sm text-gray-600 mb-1">Total Income</p>
+            <p className="text-lg sm:text-2xl font-bold text-green-700">£{totalIncome.toFixed(2)}</p>
+          </div>
+          <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-red-300">
             <p className="text-xs sm:text-sm text-gray-600 mb-1">Total Expenses</p>
-            <p className="text-lg sm:text-2xl font-bold text-green-700">£{totalExpenses.toFixed(2)}</p>
+            <p className="text-lg sm:text-2xl font-bold text-red-700">£{totalExpenses.toFixed(2)}</p>
           </div>
           <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-300">
             <p className="text-xs sm:text-sm text-gray-600 mb-1">Net Balance</p>
             <p className="text-lg sm:text-2xl font-bold text-gray-700">£{balance.toFixed(2)}</p>
           </div>
-          <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-red-300">
+          <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-blue-300">
             <p className="text-xs sm:text-sm text-gray-600 mb-1">Total Clients</p>
-            <p className="text-lg sm:text-2xl font-bold text-red-700">{monthClients.length}</p>
+            <p className="text-lg sm:text-2xl font-bold text-blue-700">{monthClients.length}</p>
           </div>
         </div>
 
         {/* Analytics Overview and Recent Activities */}
-        <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 mb-4 sm:mb-6">
-          <div className="lg:flex-1 bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-gray-200">
-            <IncomeExpenseChart totalIncome={totalIncome} totalExpenses={totalExpenses} />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 mb-6 sm:mb-8">
+          {/* Income vs Expenses Chart */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="p-4 sm:p-6 border-b border-gray-200">
+              <h3 className="text-base sm:text-lg font-medium text-gray-900">
+                Income vs Expenses
+              </h3>
+            </div>
+            <div className="p-4 sm:px-6 sm:pt-6 sm:pb-4">
+              <IncomeExpenseChart totalIncome={totalIncome} totalExpenses={totalExpenses} />
+            </div>
           </div>
-          <div className="lg:flex-1 bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Recent Activities</h3>
-            <RecentActivities transactions={recentTransactions} clients={monthClients} />
+
+          {/* Recent Activity */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="p-4 sm:p-6 border-b border-gray-200">
+              <h3 className="text-base sm:text-lg font-medium text-gray-900">
+                Recent Activity
+              </h3>
+            </div>
+            <div className="p-4 sm:p-6">
+              <div className="space-y-4">
+                {recentTransactions.length > 0 ? (
+                  recentTransactions.map((tx) => {
+                    const client = monthClients.find(c => c.id === tx.clientId);
+                    const isIncome = tx.type === 'income';
+                    const bgColor = isIncome ? 'bg-green-50' : 'bg-red-50';
+                    const dotColor = isIncome ? 'bg-green-500' : 'bg-red-500';
+                    
+                    return (
+                      <div
+                        key={tx.id}
+                        className={`flex items-center space-x-3 p-3 ${bgColor} rounded-lg`}
+                      >
+                        <div className={`w-2 h-2 ${dotColor} rounded-full flex-shrink-0`}></div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900">
+                            {isIncome && client ? `${client.name} - ${client.service}` : tx.category || 'Transaction'}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {isIncome ? 'Income' : 'Expense'} • £{tx.amount.toFixed(2)}
+                          </p>
+                        </div>
+                        <span className="text-xs text-gray-500 flex-shrink-0">
+                          {new Date(tx.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                        </span>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-center py-8">
+                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <svg
+                        className="w-6 h-6 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                    <p className="text-gray-500 text-sm">No recent activities</p>
+                    <p className="text-gray-400 text-xs mt-1">
+                      Activities will appear as you add transactions
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
