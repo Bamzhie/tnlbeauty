@@ -4,12 +4,13 @@ import { uid } from '../utils';
 import { MonthFilter } from '../components/MonthFilter';
 import { ClientListTable } from '../components/ClientListTable';
 import { AnalyticsSection } from '../components/AnalyticsSection';
-import { AddEntryForm } from '../components/AddEntryForm';
+import { AddEntryModal } from '../components/AddEntryModal';
 import { RecentActivities } from '../components/RecentActivities';
 import { Sidebar } from '../components/Sidebar';
 import { Toaster } from 'react-hot-toast';
 import { IncomeExpenseChart } from '../components/IncomeExpenseChart';
 import { ExpenseListTable } from '../components/ExpenseListTable';
+import { Plus } from 'lucide-react';
 
 const sampleClients: Client[] = [
   { id: 'c1', name: 'Alice Johnson', service: 'Gel nails', date: '2025-10-01' },
@@ -29,16 +30,8 @@ export default function ClientRevenueApp() {
   const [transactions, setTransactions] = useState<Transaction[]>(sampleTransactions);
   const [selectedMonth, setSelectedMonth] = useState<string | number>('all');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  const [txType, setTxType] = useState<'income' | 'expense'>('income');
-  const [customService, setCustomService] = useState('');
   const [currentPage, setCurrentPage] = useState<'overview' | 'clients' | 'expenses' | 'analytics'>('overview');
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [formName, setFormName] = useState('');
-  const [formService, setFormService] = useState('');
-  const [formCustomService, setFormCustomService] = useState('');
-  const [formCategory, setFormCategory] = useState('Supplies');
-  const [formAmount, setFormAmount] = useState('');
-  const [formDate, setFormDate] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const monthTransactions = useMemo(() => {
     return transactions.filter(t => {
@@ -176,51 +169,54 @@ export default function ClientRevenueApp() {
     return [...monthTransactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
   }, [monthTransactions]);
 
-  const handleAdd = useCallback(() => {
+  const handleModalSubmit = useCallback((data: any) => {
     let clientId = '';
 
-    if (txType === 'income') {
-      const name = formName.trim();
-      if (!name) { alert('Client name required'); return; }
-      let service = formService;
-      if (service === 'Other') { service = formCustomService.trim() || 'Other'; }
-      if (!service) { alert('Please select a service'); return; }
-      clientId = uid('c');
-      const newClient: Client = { 
-        id: clientId, 
-        name, 
-        service, 
-        date: formDate || new Date().toISOString().slice(0, 10) 
-      };
-      setClients(prev => [newClient, ...prev]);
+    if (data.type === 'income') {
+      // Check if client exists
+      const existingClient = clients.find(c => c.name.toLowerCase() === data.name.toLowerCase());
+      
+      if (existingClient) {
+        clientId = existingClient.id;
+        // Update existing client's last visit
+        setClients(prev => prev.map(c => 
+          c.id === clientId 
+            ? { ...c, date: data.date, service: data.service }
+            : c
+        ));
+      } else {
+        // Create new client
+        clientId = uid('c');
+        const newClient: Client = { 
+          id: clientId, 
+          name: data.name, 
+          service: data.service, 
+          date: data.date
+        };
+        setClients(prev => [newClient, ...prev]);
+      }
     }
 
+    // Create transaction
     const tx: Transaction = {
       id: uid('t'),
       clientId,
-      date: formDate || new Date().toISOString().slice(0, 10),
-      type: txType,
-      amount: Number(formAmount) || 0,
-      category: txType === 'expense' ? formCategory : '',
+      date: data.date,
+      type: data.type,
+      amount: Number(data.amount),
+      category: data.type === 'expense' ? data.category : '',
     };
 
     setTransactions(prev => [tx, ...prev]);
-    
-    setFormName('');
-    setFormService('');
-    setFormCustomService('');
-    setFormCategory('Supplies');
-    setFormAmount('');
-    setFormDate('');
-    setCustomService('');
-  }, [txType, formName, formService, formCustomService, formCategory, formAmount, formDate]);
+    setIsModalOpen(false);
+  }, [clients]);
 
   const renderContent = () => {
     switch (currentPage) {
       case 'overview':
         return (
           <main className="flex-1 bg-gray-50 min-h-screen lg:ml-56">
-            <div className="pt-20 lg:pt-8 p-4 sm:p-6 lg:p-8">
+            <div className="pt-4 pb-20 lg:pb-8 lg:pt-8 p-4 sm:p-6 lg:p-8">
               {/* Header */}
               <header className="mb-6 sm:mb-8">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -268,22 +264,20 @@ export default function ClientRevenueApp() {
                 </div>
               </div>
 
-              {/* Quick Actions */}
-              <div className="mb-6 sm:mb-8">
+              {/* Quick Actions - Desktop Only */}
+              <div className="mb-6 sm:mb-8 hidden lg:block">
                 <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                   <button
                     className="p-4 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors"
-                    onClick={() => setTxType('income')}
+                    onClick={() => setIsModalOpen(true)}
                   >
                     <div className="text-center">
                       <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-500 rounded-lg flex items-center justify-center mx-auto mb-2 sm:mb-3">
-                        <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
+                        <Plus className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                       </div>
-                      <p className="text-sm sm:text-base font-medium text-blue-900">Add Income</p>
-                      <p className="text-xs sm:text-sm text-blue-600">Record new income</p>
+                      <p className="text-sm sm:text-base font-medium text-blue-900">Add Entry</p>
+                      <p className="text-xs sm:text-sm text-blue-600">Income or expense</p>
                     </div>
                   </button>
                   <button
@@ -316,36 +310,13 @@ export default function ClientRevenueApp() {
                   </button>
                 </div>
               </div>
-
-              {/* Add Entry Form */}
-              <div>
-                <AddEntryForm
-                  txType={txType}
-                  formName={formName}
-                  formService={formService}
-                  formCustomService={formCustomService}
-                  formCategory={formCategory}
-                  formAmount={formAmount}
-                  formDate={formDate}
-                  customService={customService}
-                  onTxTypeChange={setTxType}
-                  onFormNameChange={setFormName}
-                  onFormServiceChange={setFormService}
-                  onFormCustomServiceChange={setFormCustomService}
-                  onFormCategoryChange={setFormCategory}
-                  onFormAmountChange={setFormAmount}
-                  onFormDateChange={setFormDate}
-                  onCustomServiceChange={setCustomService}
-                  onSubmit={handleAdd}
-                />
-              </div>
             </div>
           </main>
         );
       case 'clients':
         return (
           <main className="flex-1 bg-gray-50 min-h-screen lg:ml-56">
-            <div className="pt-20 lg:pt-8 p-4 sm:p-6 lg:p-8">
+            <div className="pt-4 pb-20 lg:pb-8 lg:pt-8 p-4 sm:p-6 lg:p-8">
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">Clients</h1>
               <ClientListTable clients={clientDetails} show={true} />
             </div>
@@ -354,7 +325,7 @@ export default function ClientRevenueApp() {
       case 'expenses':
         return (
           <main className="flex-1 bg-gray-50 min-h-screen lg:ml-56">
-            <div className="pt-20 lg:pt-8 p-4 sm:p-6 lg:p-8">
+            <div className="pt-4 pb-20 lg:pb-8 lg:pt-8 p-4 sm:p-6 lg:p-8">
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">Expenses</h1>
               <ExpenseListTable expenses={expenseTransactions} />
             </div>
@@ -363,7 +334,7 @@ export default function ClientRevenueApp() {
       case 'analytics':
         return (
           <main className="flex-1 bg-gray-50 min-h-screen lg:ml-56">
-            <div className="pt-20 lg:pt-8 p-4 sm:p-6 lg:p-8">
+            <div className="pt-4 pb-20 lg:pb-8 lg:pt-8 p-4 sm:p-6 lg:p-8">
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">Analytics</h1>
               <AnalyticsSection
                 show={true}
@@ -389,10 +360,15 @@ export default function ClientRevenueApp() {
       <Sidebar 
         currentPage={currentPage} 
         onPageChange={setCurrentPage}
-        isOpen={isMenuOpen}
-        onToggleMenu={() => setIsMenuOpen(!isMenuOpen)}
+        onAddClick={() => setIsModalOpen(true)}
       />
       {renderContent()}
+
+      <AddEntryModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleModalSubmit}
+      />
       <Toaster position="top-right" />
     </div>
   );
