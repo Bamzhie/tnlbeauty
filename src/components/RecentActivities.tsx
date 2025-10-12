@@ -20,14 +20,16 @@ export function RecentActivities({ transactions, clients }: RecentActivitiesProp
         return (
           <div
             key={tx.id}
-            className={`p-4 rounded-lg border`}
+            className={`p-4 rounded-lg border flex items-start justify-between`}
             style={{ backgroundColor: bgColor, borderColor: borderColor }}
           >
-            <p className={`text-sm font-medium ${titleColor}`}>
-              {isIncome && client ? `${client.name} - ${client.service}` : tx.category || 'Transaction'}
-            </p>
-            <p className={`text-sm ${amountColor}`}>£{tx.amount.toFixed(2)}</p>
-            <p className={`text-xs ${dateColor}`}>{tx.date}</p>
+            <div className="flex-1">
+              <p className={`text-sm font-medium ${titleColor}`}>
+                {isIncome && client ? `${client.name} - ${client.service}` : tx.category || 'Transaction'}
+              </p>
+              <p className={`text-xs ${dateColor} mt-1`}>{tx.date}</p>
+            </div>
+            <p className={`text-sm font-semibold ${amountColor} ml-4`}>£{tx.amount.toFixed(2)}</p>
           </div>
         );
       })}

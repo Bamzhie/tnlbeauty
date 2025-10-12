@@ -5,10 +5,11 @@ import { ClientDetail } from '../types'
 interface ClientListTableProps {
   clients?: ClientDetail[]
   show: boolean
-  onAddIncome?: () => void // Added prop for handling add income
+  onAddIncome?: () => void
+  onClientClick?: (client: ClientDetail) => void
 }
 
-export function ClientListTable({ clients, show, onAddIncome }: ClientListTableProps) {
+export function ClientListTable({ clients, show, onAddIncome, onClientClick }: ClientListTableProps) {
   if (!show) return null;
 
   const [query, setQuery] = useState('');
@@ -24,6 +25,13 @@ export function ClientListTable({ clients, show, onAddIncome }: ClientListTableP
   const indexOfLastClient = currentPage * clientsPerPage;
   const indexOfFirstClient = indexOfLastClient - clientsPerPage;
   const currentClients = filteredClients.slice(indexOfFirstClient, indexOfLastClient);
+
+  const handleClientClick = (client: ClientDetail) => {
+    console.log('Client clicked:', client);
+    if (onClientClick) {
+      onClientClick(client);
+    }
+  };
 
   return (
     <div>
@@ -67,7 +75,11 @@ export function ClientListTable({ clients, show, onAddIncome }: ClientListTableP
                 </tr>
               ) : (
                 currentClients.map((c: ClientDetail) => (
-                  <tr key={c.id} className="hover:bg-gray-50">
+                  <tr 
+                    key={c.id} 
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => handleClientClick(c)}
+                  >
                     <td className="px-4 py-3 text-sm font-medium text-gray-900">{c.name}</td>
                     <td className="px-4 py-3 text-sm text-gray-900">{c.service}</td>
                     <td className="px-4 py-3 text-sm text-gray-900">£{c.amount.toFixed(2)}</td>
@@ -87,7 +99,11 @@ export function ClientListTable({ clients, show, onAddIncome }: ClientListTableP
             <div className="p-8 text-center text-gray-500">No clients found</div>
           ) : (
             currentClients.map((c: ClientDetail) => (
-              <div key={c.id} className="p-4 hover:bg-gray-50">
+              <div 
+                key={c.id} 
+                className="p-4 hover:bg-gray-50 cursor-pointer"
+                onClick={() => handleClientClick(c)}
+              >
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="font-medium text-gray-900">{c.name}</h3>
                   <span className="text-sm font-semibold text-blue-600">£{c.amount.toFixed(2)}</span>
@@ -131,4 +147,4 @@ export function ClientListTable({ clients, show, onAddIncome }: ClientListTableP
       </div>
     </div>
   );
-};
+}

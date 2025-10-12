@@ -7,6 +7,7 @@ import { AnalyticsSection } from '../components/AnalyticsSection';
 import { AddEntryModal } from '../components/AddEntryModal';
 import { RecentActivities } from '../components/RecentActivities';
 import { Sidebar } from '../components/Sidebar';
+import { ClientDetails } from '../components/ClientDetails';
 import { Toaster } from 'react-hot-toast';
 import { IncomeExpenseChart } from '../components/IncomeExpenseChart';
 import { ExpenseListTable } from '../components/ExpenseListTable';
@@ -33,6 +34,8 @@ export default function ClientRevenueApp() {
   const [currentPage, setCurrentPage] = useState<'overview' | 'clients' | 'expenses' | 'analytics'>('overview');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalStep, setModalStep] = useState<'choose' | 'income' | 'expense'>('choose');
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [isClientDetailsOpen, setIsClientDetailsOpen] = useState(false);
 
   const monthTransactions = useMemo(() => {
     return transactions.filter(t => {
@@ -215,6 +218,27 @@ export default function ClientRevenueApp() {
     setIsModalOpen(true);
   }, []);
 
+  const handleClientClick = useCallback((clientDetail: ClientDetail) => {
+    console.log('handleClientClick called with:', clientDetail);
+    console.log('All clients:', clients);
+    const client = clients.find(c => c.id === clientDetail.id);
+    console.log('Found client:', client);
+    if (client) {
+      setSelectedClient(client);
+      setIsClientDetailsOpen(true);
+    } else {
+      // If exact match not found, create a client object from the detail
+      const tempClient: Client = {
+        id: clientDetail.id,
+        name: clientDetail.name,
+        service: clientDetail.service,
+        date: clientDetail.date || new Date().toISOString().split('T')[0]
+      };
+      setSelectedClient(tempClient);
+      setIsClientDetailsOpen(true);
+    }
+  }, [clients]);
+
   const renderContent = () => {
     switch (currentPage) {
     case 'overview':
@@ -285,25 +309,24 @@ export default function ClientRevenueApp() {
                     const client = monthClients.find(c => c.id === tx.clientId);
                     const isIncome = tx.type === 'income';
                     const bgColor = isIncome ? 'bg-green-50' : 'bg-red-50';
-                    const dotColor = isIncome ? 'bg-green-500' : 'bg-red-500';
+                    const amountColor = isIncome ? 'text-green-600' : 'text-red-600';
                     
                     return (
                       <div
                         key={tx.id}
-                        className={`flex items-center space-x-3 p-3 ${bgColor} rounded-lg`}
+                        className={`flex items-center justify-between p-3 ${bgColor} rounded-lg`}
                       >
-                        <div className={`w-2 h-2 ${dotColor} rounded-full flex-shrink-0`}></div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-900">
                             {isIncome && client ? `${client.name} - ${client.service}` : tx.category || 'Transaction'}
                           </p>
-                          <p className="text-xs text-gray-500">
-                            {isIncome ? 'Income' : 'Expense'} • £{tx.amount.toFixed(2)}
-                          </p>
+                          <span className="text-xs text-gray-500">
+                            {new Date(tx.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                          </span>
                         </div>
-                        <span className="text-xs text-gray-500 flex-shrink-0">
-                          {new Date(tx.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                        </span>
+                        <p className={`text-sm font-semibold ${amountColor} ml-4 flex-shrink-0`}>
+                          £{tx.amount.toFixed(2)}
+                        </p>
                       </div>
                     );
                   })
@@ -384,24 +407,43 @@ export default function ClientRevenueApp() {
       </div>
     </main>
   );
-        case 'clients':
-        return (
-          <main className="flex-1 bg-gray-50 min-h-screen lg:ml-56">
-            <div className="pt-4 pb-20 lg:pb-8 lg:pt-8 p-4 sm:p-6 lg:p-8">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Clients</h1>
-                <MonthFilter
-                  selectedMonth={selectedMonth}
-                  selectedYear={selectedYear}
-                  onMonthChange={setSelectedMonth}
-                  onYearChange={setSelectedYear}
-                  hideLabels={true}
-                />
-              </div>
-              <ClientListTable clients={clientDetails} show={true} onAddIncome={handleAddIncome} />
-            </div>
-          </main>
-        );
+case 'clients':
+  console.log('Rendering clients page, isClientDetailsOpen:', isClientDetailsOpen, 'handleClientClick:', handleClientClick);
+  return (
+    <main className="flex-1 bg-gray-50 min-h-screen lg:ml-56">
+      {isClientDetailsOpen && (
+        <div 
+          className="fixed inset-0 bg-black/30 z-40 transition-opacity duration-300 ease-in-out"
+          onClick={() => setIsClientDetailsOpen(false)}
+        />
+      )}
+      <div className="pt-4 pb-20 lg:pb-8 lg:pt-8 p-4 sm:p-6 lg:p-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Clients</h1>
+          <MonthFilter
+            selectedMonth={selectedMonth}
+            selectedYear={selectedYear}
+            onMonthChange={setSelectedMonth}
+            onYearChange={setSelectedYear}
+            hideLabels={true}
+          />
+        </div>
+        <ClientListTable 
+          clients={clientDetails} 
+          show={true} 
+          onAddIncome={handleAddIncome}
+          onClientClick={handleClientClick}
+        />
+      </div>
+      <ClientDetails
+        client={selectedClient}
+        isOpen={isClientDetailsOpen}
+        onClose={() => setIsClientDetailsOpen(false)}
+        transactions={transactions}
+        allClients={clients}
+      />
+    </main>
+  );
       case 'expenses':
         return (
           <main className="flex-1 bg-gray-50 min-h-screen lg:ml-56">
@@ -466,6 +508,13 @@ export default function ClientRevenueApp() {
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleModalSubmit}
         initialStep={modalStep}
+      />
+      <ClientDetails
+        client={selectedClient}
+        isOpen={isClientDetailsOpen}
+        onClose={() => setIsClientDetailsOpen(false)}
+        transactions={transactions}
+        allClients={clients}
       />
       <Toaster position="top-right" />
     </div>
