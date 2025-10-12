@@ -114,8 +114,9 @@ export default function ClientRevenueApp() {
   const clientVisits = useMemo<Record<string, string[]>>(() => {
     const visits: Record<string, string[]> = {};
     monthClients.forEach(c => {
-      if (!visits[c.name]) visits[c.name] = [];
-      visits[c.name].push(c.date);
+      const name = c.name.trim().toLowerCase();
+      if (!visits[name]) visits[name] = [];
+      visits[name].push(c.date);
     });
     return visits;
   }, [monthClients]);
@@ -172,9 +173,10 @@ export default function ClientRevenueApp() {
 
   const handleModalSubmit = useCallback((data: any) => {
     let clientId = '';
+    const normalizedName = data.name.trim().toLowerCase();
 
     if (data.type === 'income') {
-      const existingClient = clients.find(c => c.name.toLowerCase() === data.name.toLowerCase());
+      const existingClient = clients.find(c => c.name.trim().toLowerCase() === normalizedName);
       
       if (existingClient) {
         clientId = existingClient.id;
@@ -187,10 +189,11 @@ export default function ClientRevenueApp() {
         clientId = uid('c');
         const newClient: Client = { 
           id: clientId, 
-          name: data.name, 
+          name: data.name.trim(), 
           service: data.service, 
           date: data.date
         };
+        console.log('Adding new client:', newClient);
         setClients(prev => [newClient, ...prev]);
       }
     }
@@ -204,8 +207,61 @@ export default function ClientRevenueApp() {
       category: data.type === 'expense' ? data.category : '',
     };
 
+    console.log('Adding transaction:', tx);
     setTransactions(prev => [tx, ...prev]);
     setIsModalOpen(false);
+  }, [clients]);
+
+  const handleAddEntry = useCallback((data: any) => {
+    let clientId = '';
+    const normalizedName = data.name.trim().toLowerCase();
+
+    if (data.type === 'income') {
+      const existingClient = clients.find(c => c.name.trim().toLowerCase() === normalizedName);
+      
+      if (existingClient) {
+        clientId = existingClient.id;
+        setClients(prev => {
+          const updatedClients = prev.map(c => 
+            c.id === clientId 
+              ? { ...c, date: data.date, service: data.service }
+              : c
+          );
+          console.log('Updated clients:', updatedClients);
+          return updatedClients;
+        });
+      } else {
+        clientId = uid('c');
+        const newClient: Client = { 
+          id: clientId, 
+          name: data.name.trim(), 
+          service: data.service, 
+          date: data.date
+        };
+        console.log('Adding new client:', newClient);
+        setClients(prev => {
+          const updatedClients = [newClient, ...prev];
+          console.log('Updated clients:', updatedClients);
+          return updatedClients;
+        });
+      }
+    }
+
+    const tx: Transaction = {
+      id: uid('t'),
+      clientId,
+      date: data.date,
+      type: data.type,
+      amount: Number(data.amount),
+      category: data.type === 'expense' ? data.category : '',
+    };
+
+    console.log('Adding transaction:', tx);
+    setTransactions(prev => {
+      const updatedTransactions = [tx, ...prev];
+      console.log('Updated transactions:', updatedTransactions);
+      return updatedTransactions;
+    });
   }, [clients]);
 
   const handleAddIncome = useCallback(() => {
@@ -227,13 +283,13 @@ export default function ClientRevenueApp() {
       setSelectedClient(client);
       setIsClientDetailsOpen(true);
     } else {
-      // If exact match not found, create a client object from the detail
       const tempClient: Client = {
         id: clientDetail.id,
         name: clientDetail.name,
         service: clientDetail.service,
         date: clientDetail.date || new Date().toISOString().split('T')[0]
       };
+      console.log('Temp client created:', tempClient);
       setSelectedClient(tempClient);
       setIsClientDetailsOpen(true);
     }
@@ -441,6 +497,7 @@ case 'clients':
         onClose={() => setIsClientDetailsOpen(false)}
         transactions={transactions}
         allClients={clients}
+        onAddEntry={handleAddEntry}
       />
     </main>
   );
@@ -515,6 +572,7 @@ case 'clients':
         onClose={() => setIsClientDetailsOpen(false)}
         transactions={transactions}
         allClients={clients}
+        onAddEntry={handleAddEntry}
       />
       <Toaster position="top-right" />
     </div>
