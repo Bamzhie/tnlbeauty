@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 interface AddEntryModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ export const AddEntryModal: React.FC<AddEntryModalProps> = ({ isOpen, onClose, o
     amount: '',
     date: new Date().toISOString().slice(0, 10),
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Reset form and step when modal opens or props change
   useEffect(() => {
@@ -32,43 +34,53 @@ export const AddEntryModal: React.FC<AddEntryModalProps> = ({ isOpen, onClose, o
         amount: '',
         date: new Date().toISOString().slice(0, 10),
       });
+      setIsSubmitting(false);
     }
   }, [isOpen, initialStep, initialClientName]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (isSubmitting) return; // Prevent multiple submissions
+
     if (step === 'income') {
       if (!formData.name.trim()) {
-        alert('Client name is required');
+        toast.error('Client name is required');
         return;
       }
       if (!formData.service) {
-        alert('Service is required');
+        toast.error('Service is required');
         return;
       }
       if (!formData.amount || Number(formData.amount) <= 0) {
-        alert('Valid amount is required');
+        toast.error('Valid amount is required');
         return;
       }
     } else if (step === 'expense') {
       if (!formData.amount || Number(formData.amount) <= 0) {
-        alert('Valid amount is required');
+        toast.error('Valid amount is required');
         return;
       }
     }
 
-    onSubmit({
-      type: step,
-      ...formData,
-      service: formData.service === 'Other' ? formData.customService : formData.service,
-    });
-
-    // Close modal without resetting form here (handled in useEffect)
-    onClose();
+    setIsSubmitting(true);
+    try {
+      await onSubmit({
+        type: step,
+        ...formData,
+        service: formData.service === 'Other' ? formData.customService : formData.service,
+      });
+      toast.success(`${step === 'income' ? 'Income' : 'Expense'} added successfully`);
+    } catch (error) {
+      toast.error('Failed to add entry');
+    } finally {
+      setIsSubmitting(false);
+      onClose();
+    }
   };
 
   const handleClose = () => {
+    setIsSubmitting(false);
     onClose();
   };
 
@@ -85,6 +97,7 @@ export const AddEntryModal: React.FC<AddEntryModalProps> = ({ isOpen, onClose, o
           <button
             onClick={handleClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            disabled={isSubmitting}
           >
             <X className="w-5 h-5 text-gray-500" />
           </button>
@@ -97,6 +110,7 @@ export const AddEntryModal: React.FC<AddEntryModalProps> = ({ isOpen, onClose, o
               <button
                 onClick={() => setStep('income')}
                 className="w-full p-5 bg-green-50 hover:bg-green-100 active:bg-green-100 border-2 border-green-200 rounded-2xl transition-colors"
+                disabled={isSubmitting}
               >
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center shadow-md">
@@ -117,6 +131,7 @@ export const AddEntryModal: React.FC<AddEntryModalProps> = ({ isOpen, onClose, o
               <button
                 onClick={() => setStep('expense')}
                 className="w-full p-5 bg-red-50 hover:bg-red-100 active:bg-red-100 border-2 border-red-200 rounded-2xl transition-colors"
+                disabled={isSubmitting}
               >
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center shadow-md">
@@ -148,7 +163,7 @@ export const AddEntryModal: React.FC<AddEntryModalProps> = ({ isOpen, onClose, o
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Enter client name"
                   className="w-full px-4 py-3 text-base border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  disabled={!!initialClientName}
+                  disabled={!!initialClientName || isSubmitting}
                 />
               </div>
 
@@ -161,6 +176,7 @@ export const AddEntryModal: React.FC<AddEntryModalProps> = ({ isOpen, onClose, o
                   onChange={(e) => setFormData({ ...formData, service: e.target.value })}
                   className="w-full px-4 py-3 text-base border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white"
                   style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 9L1 4h10z'/%3E%3C/svg%3E\")", backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center' }}
+                  disabled={isSubmitting}
                 >
                   <option value="">Select service</option>
                   <option value="Gel nails">Gel nails</option>
@@ -182,6 +198,7 @@ export const AddEntryModal: React.FC<AddEntryModalProps> = ({ isOpen, onClose, o
                     onChange={(e) => setFormData({ ...formData, customService: e.target.value })}
                     placeholder="Enter custom service"
                     className="w-full px-4 py-3 text-base border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    disabled={isSubmitting}
                   />
                 </div>
               )}
@@ -198,6 +215,7 @@ export const AddEntryModal: React.FC<AddEntryModalProps> = ({ isOpen, onClose, o
                   step="0.01"
                   min="0"
                   className="w-full px-4 py-3 text-base border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -210,6 +228,7 @@ export const AddEntryModal: React.FC<AddEntryModalProps> = ({ isOpen, onClose, o
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                   className="w-full px-4 py-3 text-base border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -217,14 +236,16 @@ export const AddEntryModal: React.FC<AddEntryModalProps> = ({ isOpen, onClose, o
                 <button
                   onClick={() => setStep('choose')}
                   className="flex-1 px-4 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                  disabled={isSubmitting}
                 >
                   Back
                 </button>
                 <button
                   onClick={handleSubmit}
-                  className="flex-1 px-4 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 active:scale-98 transition-all font-semibold shadow-md"
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 active:scale-98 transition-all font-semibold shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isSubmitting}
                 >
-                  Add Income
+                  {isSubmitting ? 'Submitting...' : 'Add Income'}
                 </button>
               </div>
             </div>
@@ -241,6 +262,7 @@ export const AddEntryModal: React.FC<AddEntryModalProps> = ({ isOpen, onClose, o
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                   className="w-full px-4 py-3 text-base border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent appearance-none bg-white"
                   style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 9L1 4h10z'/%3E%3C/svg%3E\")", backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center' }}
+                  disabled={isSubmitting}
                 >
                   <option value="Supplies">Supplies</option>
                   <option value="Rent">Rent</option>
@@ -261,6 +283,7 @@ export const AddEntryModal: React.FC<AddEntryModalProps> = ({ isOpen, onClose, o
                   step="0.01"
                   min="0"
                   className="w-full px-4 py-3 text-base border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -273,6 +296,7 @@ export const AddEntryModal: React.FC<AddEntryModalProps> = ({ isOpen, onClose, o
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                   className="w-full px-4 py-3 text-base border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -280,14 +304,16 @@ export const AddEntryModal: React.FC<AddEntryModalProps> = ({ isOpen, onClose, o
                 <button
                   onClick={() => setStep('choose')}
                   className="flex-1 px-4 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                  disabled={isSubmitting}
                 >
                   Back
                 </button>
                 <button
                   onClick={handleSubmit}
-                  className="flex-1 px-4 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 active:scale-98 transition-all font-semibold shadow-md"
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 active:scale-98 transition-all font-semibold shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isSubmitting}
                 >
-                  Add Expense
+                  {isSubmitting ? 'Submitting...' : 'Add Expense'}
                 </button>
               </div>
             </div>

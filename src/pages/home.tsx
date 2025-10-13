@@ -48,6 +48,7 @@ export default function ClientRevenueApp() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [isClientDetailsOpen, setIsClientDetailsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch data from API
   useEffect(() => {
@@ -209,6 +210,9 @@ export default function ClientRevenueApp() {
   }, [monthTransactions]);
 
   const handleModalSubmit = useCallback(async (data: any) => {
+    if (isSubmitting) return; // Prevent multiple submissions
+
+    setIsSubmitting(true);
     try {
       if (data.type === 'income') {
         const incomeDto: AddIncomeDto = {
@@ -244,12 +248,17 @@ export default function ClientRevenueApp() {
       setIsModalOpen(false);
     } catch (error) {
       console.error('Error submitting entry:', error);
-      // toast.error('Failed to add entry');
+      // Error toast is handled in AddEntryModal
+    } finally {
+      setIsSubmitting(false);
     }
-  }, []);
+  }, [isSubmitting]);
 
   const handleAddEntry = useCallback(async (data: any) => {
+    if (isSubmitting) return; // Prevent multiple submissions
+
     try {
+      setIsSubmitting(true);
       if (data.type === 'income' && selectedClient) {
         const apiClient = apiClients.find(c => c._id === selectedClient.id);
         if (apiClient) {
@@ -271,19 +280,21 @@ export default function ClientRevenueApp() {
       }
     } catch (error) {
       console.error('Error adding entry:', error);
-      // toast.error('Failed to add entry');
+      // Error toast is handled in AddEntryModal
+    } finally {
+      setIsSubmitting(false);
     }
-  }, [selectedClient, apiClients]);
+  }, [isSubmitting, selectedClient, apiClients]);
 
   const handleAddIncome = useCallback(() => {
     setModalStep('income');
-    setSelectedClient(null); // Reset selected client to ensure clean form
+    setSelectedClient(null);
     setIsModalOpen(true);
   }, []);
 
   const handleAddExpense = useCallback(() => {
     setModalStep('expense');
-    setSelectedClient(null); // Reset selected client
+    setSelectedClient(null);
     setIsModalOpen(true);
   }, []);
 
@@ -297,7 +308,7 @@ export default function ClientRevenueApp() {
 
   const handleCloseClientDetails = useCallback(() => {
     setIsClientDetailsOpen(false);
-    setSelectedClient(null); // Reset selected client when closing
+    setSelectedClient(null);
   }, []);
 
   const renderContent = () => {
@@ -438,6 +449,7 @@ export default function ClientRevenueApp() {
                       setSelectedClient(null);
                       setIsModalOpen(true);
                     }}
+                    disabled={isSubmitting}
                   >
                     <div className="text-center">
                       <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-400 rounded-lg flex items-center justify-center mx-auto mb-2 sm:mb-3">
@@ -450,6 +462,7 @@ export default function ClientRevenueApp() {
                   <button
                     className="p-4 bg-gray-50 hover:bg-gray-100 rounded-lg border border-green-200 transition-colors"
                     onClick={() => setCurrentPage('analytics')}
+                    disabled={isSubmitting}
                   >
                     <div className="text-center">
                       <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-400 rounded-lg flex items-center justify-center mx-auto mb-2 sm:mb-3">
@@ -464,6 +477,7 @@ export default function ClientRevenueApp() {
                   <button
                     className="p-4 bg-gray-50 hover:bg-gray-100 rounded-lg border border-purple-200 transition-colors"
                     onClick={() => setCurrentPage('clients')}
+                    disabled={isSubmitting}
                   >
                     <div className="text-center">
                       <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-400 rounded-lg flex items-center justify-center mx-auto mb-2 sm:mb-3">
@@ -587,7 +601,7 @@ export default function ClientRevenueApp() {
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
-          setSelectedClient(null); // Reset selected client when closing
+          setSelectedClient(null);
         }}
         onSubmit={handleModalSubmit}
         initialStep={modalStep}

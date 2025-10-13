@@ -1,4 +1,4 @@
-import { X, Calendar, Clock, TrendingUp } from 'lucide-react';
+import { X, Calendar, TrendingUp } from 'lucide-react';
 import { Client, Transaction } from '../types';
 import { AddEntryModal } from './AddEntryModal';
 import { useState, useEffect } from 'react';
@@ -13,17 +13,28 @@ interface ClientDetailsProps {
 }
 
 export function ClientDetails({ client, isOpen, onClose, transactions, allClients, onAddEntry }: ClientDetailsProps) {
-  if (!client) {
-    console.log('ClientDetails not rendered: client is null');
-    return null;
-  }
-
   const [isAddEntryOpen, setIsAddEntryOpen] = useState(false);
 
+  // Reset isAddEntryOpen when client changes or component unmounts
   useEffect(() => {
-    console.log('ClientDetails rendered, client:', client, 'isOpen:', isOpen);
-    console.log('Footer should render with Add New Entry and Close buttons');
+    return () => {
+      setIsAddEntryOpen(false);
+    };
+  }, [client]);
+
+  // Log render details
+  useEffect(() => {
+    if (client) {
+      console.log('ClientDetails rendered, client:', client, 'isOpen:', isOpen);
+      console.log('Footer should render with Add New Entry and Close buttons');
+    } else {
+      console.log('ClientDetails not rendered: client is null');
+    }
   }, [client, isOpen]);
+
+  if (!client) {
+    return null; // Render nothing but still call all hooks
+  }
 
   // Use visitHistory from client
   const clientVisits = client.visitHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
