@@ -6,7 +6,7 @@ interface AddEntryModalProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialStep?: 'choose' | 'income' | 'expense';
-  initialClientName?: string; // Added prop for pre-populating client name
+  initialClientName?: string;
 }
 
 export const AddEntryModal: React.FC<AddEntryModalProps> = ({ isOpen, onClose, onSubmit, initialStep = 'choose', initialClientName = '' }) => {
@@ -20,14 +20,20 @@ export const AddEntryModal: React.FC<AddEntryModalProps> = ({ isOpen, onClose, o
     date: new Date().toISOString().slice(0, 10),
   });
 
-  // Update step and formData when initial props change
+  // Reset form and step when modal opens or props change
   useEffect(() => {
-    setStep(initialStep);
-    setFormData(prev => ({
-      ...prev,
-      name: initialClientName,
-    }));
-  }, [initialStep, initialClientName]);
+    if (isOpen) {
+      setStep(initialStep);
+      setFormData({
+        name: initialClientName,
+        service: '',
+        customService: '',
+        category: 'Supplies',
+        amount: '',
+        date: new Date().toISOString().slice(0, 10),
+      });
+    }
+  }, [isOpen, initialStep, initialClientName]);
 
   if (!isOpen) return null;
 
@@ -58,29 +64,11 @@ export const AddEntryModal: React.FC<AddEntryModalProps> = ({ isOpen, onClose, o
       service: formData.service === 'Other' ? formData.customService : formData.service,
     });
 
-    // Reset form, keeping client name if provided
-    setFormData({
-      name: initialClientName,
-      service: '',
-      customService: '',
-      category: 'Supplies',
-      amount: '',
-      date: new Date().toISOString().slice(0, 10),
-    });
-    setStep('choose');
+    // Close modal without resetting form here (handled in useEffect)
     onClose();
   };
 
   const handleClose = () => {
-    setFormData({
-      name: initialClientName,
-      service: '',
-      customService: '',
-      category: 'Supplies',
-      amount: '',
-      date: new Date().toISOString().slice(0, 10),
-    });
-    setStep('choose');
     onClose();
   };
 
@@ -160,7 +148,7 @@ export const AddEntryModal: React.FC<AddEntryModalProps> = ({ isOpen, onClose, o
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Enter client name"
                   className="w-full px-4 py-3 text-base border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  disabled={!!initialClientName} // Disable if client name is pre-populated
+                  disabled={!!initialClientName}
                 />
               </div>
 

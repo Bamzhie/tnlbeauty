@@ -1,4 +1,4 @@
-import { X, Calendar, Clock, TrendingUp, DollarSign } from 'lucide-react';
+import { X, Calendar, Clock, TrendingUp } from 'lucide-react';
 import { Client, Transaction } from '../types';
 import { AddEntryModal } from './AddEntryModal';
 import { useState, useEffect } from 'react';
@@ -25,10 +25,10 @@ export function ClientDetails({ client, isOpen, onClose, transactions, allClient
     console.log('Footer should render with Add New Entry and Close buttons');
   }, [client, isOpen]);
 
-  const clientVisits = allClients
-    .filter(c => c.name.toLowerCase() === client.name.toLowerCase())
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  // Use visitHistory from client
+  const clientVisits = client.visitHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+  // Use transactions for consistency with other components, filtered by clientId
   const clientTransactions = transactions
     .filter(t => t.type === 'income' && t.clientId === client.id)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -36,7 +36,7 @@ export function ClientDetails({ client, isOpen, onClose, transactions, allClient
   const numberOfVisits = clientVisits.length;
   const firstVisit = clientVisits[clientVisits.length - 1]?.date;
   const lastVisit = clientVisits[0]?.date;
-  const totalSpent = clientTransactions.reduce((sum, t) => sum + t.amount, 0);
+  const totalSpent = clientVisits.reduce((sum, visit) => sum + visit.amount, 0);
 
   return (
     <>
@@ -114,8 +114,8 @@ export function ClientDetails({ client, isOpen, onClose, transactions, allClient
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {clientVisits.length > 0 ? (
-                      clientVisits.map((visit, index) => (
-                        <tr key={`${visit.id}-${index}`}>
+                      clientVisits.map((visit) => (
+                        <tr key={visit.id}>
                           <td className="px-4 py-2 text-sm">
                             {new Date(visit.date).toLocaleDateString('en-GB', { 
                               day: 'numeric', 
@@ -128,9 +128,7 @@ export function ClientDetails({ client, isOpen, onClose, transactions, allClient
                           </td>
                           <td className="px-4 py-2">
                             <span className="text-sm font-semibold text-green-600">
-                              £{clientTransactions.find(t => 
-                                new Date(t.date).toDateString() === new Date(visit.date).toDateString()
-                              )?.amount.toFixed(2) || '0.00'}
+                              £{visit.amount.toFixed(2)}
                             </span>
                           </td>
                         </tr>
@@ -152,8 +150,7 @@ export function ClientDetails({ client, isOpen, onClose, transactions, allClient
               data-testid="add-new-entry-button"
               onClick={() => {
                 console.log('Add New Entry button clicked, opening AddEntryModal with initialStep=income');
-                setIsAddEntryOpen(false); // Reset state to ensure fresh modal
-                setTimeout(() => setIsAddEntryOpen(true), 0); // Force re-render
+                setIsAddEntryOpen(true);
               }}
               className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all font-semibold text-base shadow-md min-w-[140px] min-h-[48px] visible"
             >

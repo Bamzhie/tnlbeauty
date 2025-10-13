@@ -3,6 +3,14 @@ export interface Client {
   name: string;
   service: string;
   date: string;
+  visitHistory: Visit[]; // Add visitHistory
+}
+
+export interface Visit {
+  id: string;
+  date: string;
+  service: string;
+  amount: number;
 }
 
 export interface Transaction {
@@ -12,6 +20,7 @@ export interface Transaction {
   type: 'income' | 'expense';
   amount: number;
   category?: string;
+  service?: string; // Add service
 }
 
 export interface ClientDetail {
@@ -19,7 +28,7 @@ export interface ClientDetail {
   name: string;
   service: string;
   amount: number;
-  date?: string;
+  date: string;
 }
 
 export interface ServiceCount {
