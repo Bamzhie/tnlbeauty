@@ -1,16 +1,52 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Client, Transaction, ClientDetail, ServiceCount, ExpenseData, Visit } from '../types';
-import api, { AllDataResponse, AddIncomeDto, AddExpenseDto, AddIncomeToClientDto, Client as ApiClient, Transaction as ApiTransaction } from '../service/api';
-import { MonthFilter } from '../components/MonthFilter';
-import { ClientListTable } from '../components/ClientListTable';
-import { AnalyticsSection } from '../components/AnalyticsSection';
-import { AddEntryModal } from '../components/AddEntryModal';
-import { Sidebar } from '../components/Sidebar';
-import { ClientDetails } from '../components/ClientDetails';
-import { Toaster } from 'react-hot-toast';
-import { IncomeExpenseChart } from '../components/IncomeExpenseChart';
-import { ExpenseListTable } from '../components/ExpenseListTable';
-import { Plus } from 'lucide-react';
+import { useState, useEffect, useMemo, useCallback } from "react";
+import {
+  Client,
+  Transaction,
+  ClientDetail,
+  ServiceCount,
+  ExpenseData,
+} from "../types";
+import api, {
+  AllDataResponse,
+  AddIncomeDto,
+  AddExpenseDto,
+  AddIncomeToClientDto,
+  Client as ApiClient,
+  Transaction as ApiTransaction,
+} from "../service/api";
+import { MonthFilter } from "../components/MonthFilter";
+import { ClientListTable } from "../components/ClientListTable";
+import { AnalyticsSection } from "../components/AnalyticsSection";
+import { AddEntryModal } from "../components/AddEntryModal";
+import { Sidebar } from "../components/Sidebar";
+import { ClientDetails } from "../components/ClientDetails";
+import { Toaster } from "react-hot-toast";
+import { IncomeExpenseChart } from "../components/IncomeExpenseChart";
+import { ExpenseListTable } from "../components/ExpenseListTable";
+import { Plus } from "lucide-react";
+
+// Simple linear regression function (used for other metrics)
+const simpleRegression = (
+  data: { x: number; y: number }[]
+): { slope: number; intercept: number } => {
+  const n = data.length;
+  if (n < 2) return { slope: 0, intercept: 0 };
+
+  let sumX = 0,
+    sumY = 0,
+    sumXY = 0,
+    sumXX = 0;
+  for (const { x, y } of data) {
+    sumX += x;
+    sumY += y;
+    sumXY += x * y;
+    sumXX += x * x;
+  }
+
+  const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+  const intercept = (sumY - slope * sumX) / n;
+  return { slope, intercept };
+};
 
 // Adapter functions to convert API types to frontend types
 const adaptApiClientToClient = (apiClient: ApiClient): Client => ({
@@ -18,7 +54,7 @@ const adaptApiClientToClient = (apiClient: ApiClient): Client => ({
   name: apiClient.name,
   service: apiClient.service,
   date: apiClient.date,
-  visitHistory: apiClient.visitHistory.map(visit => ({
+  visitHistory: apiClient.visitHistory.map((visit) => ({
     id: visit._id,
     date: visit.date,
     service: visit.service,
@@ -26,9 +62,11 @@ const adaptApiClientToClient = (apiClient: ApiClient): Client => ({
   })),
 });
 
-const adaptApiTransactionToTransaction = (apiTransaction: ApiTransaction): Transaction => ({
+const adaptApiTransactionToTransaction = (
+  apiTransaction: ApiTransaction
+): Transaction => ({
   id: apiTransaction._id,
-  clientId: apiTransaction.clientId || '',
+  clientId: apiTransaction.clientId || "",
   date: apiTransaction.date,
   type: apiTransaction.type,
   amount: apiTransaction.amount,
@@ -40,11 +78,17 @@ export default function ClientRevenueApp() {
   const [clients, setClients] = useState<Client[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [apiClients, setApiClients] = useState<ApiClient[]>([]);
-  const [selectedMonth, setSelectedMonth] = useState<string | number>('all');
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  const [currentPage, setCurrentPage] = useState<'overview' | 'clients' | 'expenses' | 'analytics'>('overview');
+  const [selectedMonth, setSelectedMonth] = useState<string | number>("all");
+  const [selectedYear, setSelectedYear] = useState<number>(
+    new Date().getFullYear()
+  );
+  const [currentPage, setCurrentPage] = useState<
+    "overview" | "clients" | "expenses" | "analytics"
+  >("overview");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalStep, setModalStep] = useState<'choose' | 'income' | 'expense'>('choose');
+  const [modalStep, setModalStep] = useState<"choose" | "income" | "expense">(
+    "choose"
+  );
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [isClientDetailsOpen, setIsClientDetailsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -56,18 +100,22 @@ export default function ClientRevenueApp() {
       try {
         setIsLoading(true);
         const response: AllDataResponse = await api.fetchAllData(
-          selectedMonth !== 'all' ? Number(selectedMonth) : undefined,
+          selectedMonth !== "all" ? Number(selectedMonth) : undefined,
           selectedYear
         );
-        
-        const adaptedClients = response.data.clients.map(adaptApiClientToClient);
-        const adaptedTransactions = response.data.transactions.map(adaptApiTransactionToTransaction);
-        
+
+        const adaptedClients = response.data.clients.map(
+          adaptApiClientToClient
+        );
+        const adaptedTransactions = response.data.transactions.map(
+          adaptApiTransactionToTransaction
+        );
+
         setClients(adaptedClients);
         setTransactions(adaptedTransactions);
         setApiClients(response.data.clients);
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error("Error fetching data:", error);
       } finally {
         setIsLoading(false);
       }
@@ -75,51 +123,68 @@ export default function ClientRevenueApp() {
     fetchData();
   }, [selectedMonth, selectedYear]);
 
+  const monthClients = useMemo(() => {
+    const filteredClients = clients.filter((c) => {
+      if (selectedMonth === "all")
+        return new Date(c.date).getFullYear() === Number(selectedYear);
+      return c.visitHistory.some((v) => {
+        const d = new Date(v.date);
+        return (
+          d.getMonth() === Number(selectedMonth) &&
+          d.getFullYear() === Number(selectedYear)
+        );
+      });
+    });
+    console.log(
+      "monthClients:",
+      filteredClients.map((c) => ({
+        name: c.name,
+        visitHistory: c.visitHistory,
+      }))
+    );
+    return filteredClients;
+  }, [clients, selectedMonth, selectedYear]);
+
   const monthTransactions = useMemo(() => {
-    return transactions.filter(t => {
+    return transactions.filter((t) => {
       const d = new Date(t.date);
-      if (selectedMonth === 'all') return d.getFullYear() === Number(selectedYear);
-      return d.getMonth() === Number(selectedMonth) && d.getFullYear() === Number(selectedYear);
+      if (selectedMonth === "all")
+        return d.getFullYear() === Number(selectedYear);
+      return (
+        d.getMonth() === Number(selectedMonth) &&
+        d.getFullYear() === Number(selectedYear)
+      );
     });
   }, [transactions, selectedMonth, selectedYear]);
 
-  const monthClients = useMemo(() => {
-    return clients.filter(c => {
-      if (!c.date) return true;
-      const d = new Date(c.date);
-      if (selectedMonth === 'all') return d.getFullYear() === Number(selectedYear);
-      return d.getMonth() === Number(selectedMonth) && d.getFullYear() === Number(selectedYear);
-    });
-  }, [clients, selectedMonth, selectedYear]);
-
-  const incomeTransactions = useMemo(() => 
-    monthTransactions.filter(t => t.type === 'income'), 
-    [monthTransactions]
-  );
-  
-  const expenseTransactions = useMemo(() => 
-    monthTransactions.filter(t => t.type === 'expense'), 
+  const incomeTransactions = useMemo(
+    () => monthTransactions.filter((t) => t.type === "income"),
     [monthTransactions]
   );
 
-  const totalIncome = useMemo(() => 
-    incomeTransactions.reduce((s, t) => s + Number(t.amount), 0), 
+  const expenseTransactions = useMemo(
+    () => monthTransactions.filter((t) => t.type === "expense"),
+    [monthTransactions]
+  );
+
+  const totalIncome = useMemo(
+    () => incomeTransactions.reduce((s, t) => s + Number(t.amount), 0),
     [incomeTransactions]
   );
-  
-  const totalExpenses = useMemo(() => 
-    expenseTransactions.reduce((s, t) => s + Number(t.amount), 0), 
+
+  const totalExpenses = useMemo(
+    () => expenseTransactions.reduce((s, t) => s + Number(t.amount), 0),
     [expenseTransactions]
   );
-  
-  const balance = useMemo(() => 
-    totalIncome - totalExpenses, 
+
+  const balance = useMemo(
+    () => totalIncome - totalExpenses,
     [totalIncome, totalExpenses]
   );
 
   const pieData = useMemo<ExpenseData[]>(() => {
     const grouped = expenseTransactions.reduce((acc, t) => {
-      const cat = t.category || 'Other';
+      const cat = t.category || "Other";
       acc[cat] = (acc[cat] || 0) + Number(t.amount);
       return acc;
     }, {} as Record<string, number>);
@@ -127,12 +192,120 @@ export default function ClientRevenueApp() {
   }, [expenseTransactions]);
 
   const serviceData = useMemo<ServiceCount[]>(() => {
-    const counts = monthClients.reduce((acc, c) => { 
-      acc[c.service] = (acc[c.service] || 0) + 1; 
-      return acc; 
+    const counts = monthClients.reduce((acc, c) => {
+      acc[c.service] = (acc[c.service] || 0) + 1;
+      return acc;
     }, {} as Record<string, number>);
-    return Object.entries(counts).map(([service, count]) => ({ service, count }));
+    return Object.entries(counts)
+      .map(([service, count]) => ({ service, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 4);
   }, [monthClients]);
+
+  const clientVisits = useMemo<Record<string, string[]>>(() => {
+    const visits: Record<string, string[]> = {};
+    monthClients.forEach((c) => {
+      const name = c.name.trim().toLowerCase();
+      if (!visits[name]) visits[name] = [];
+      c.visitHistory.forEach((v) => {
+        if (
+          selectedMonth === "all" ||
+          new Date(v.date).getMonth() === Number(selectedMonth)
+        ) {
+          visits[name].push(v.date);
+        }
+      });
+    });
+    console.log("clientVisits:", visits);
+    return visits;
+  }, [monthClients, selectedMonth]);
+
+  const retentionRate = useMemo(() => {
+    const totalClients = Object.keys(clientVisits).length;
+    const returningClients = Object.values(clientVisits).filter(
+      (visits) => visits.length > 1
+    ).length;
+    console.log("retentionRate Debug:", {
+      totalClients,
+      returningClients,
+      clientVisits,
+    });
+    return totalClients > 0
+      ? ((returningClients / totalClients) * 100).toFixed(1)
+      : "0.0";
+  }, [clientVisits]);
+
+  const averageDays = useMemo(() => {
+    const visitIntervals: number[] = [];
+    Object.values(clientVisits).forEach((visits) => {
+      if (visits.length > 1) {
+        const sortedDates = visits
+          .map((d) => new Date(d))
+          .sort((a, b) => a.getTime() - b.getTime());
+        for (let i = 1; i < sortedDates.length; i++) {
+          const daysDiff =
+            (sortedDates[i].getTime() - sortedDates[i - 1].getTime()) /
+            (1000 * 60 * 60 * 24);
+          visitIntervals.push(daysDiff);
+        }
+      }
+    });
+    if (visitIntervals.length === 0) return "0";
+    const avg =
+      visitIntervals.reduce((sum, val) => sum + val, 0) / visitIntervals.length;
+    return avg < 1 ? (avg * 24).toFixed(1) + " hours" : avg.toFixed(1);
+  }, [clientVisits]);
+
+  const monthlyIncome = useMemo<Record<string, number>>(() => {
+    const months: Record<string, number> = {};
+    transactions
+      .filter((t) => t.type === "income")
+      .forEach((t) => {
+        const monthKey = t.date.slice(0, 7);
+        months[monthKey] = (months[monthKey] || 0) + Number(t.amount);
+      });
+    return months;
+  }, [transactions]);
+
+  const forecastedIncome = useMemo(() => {
+    const incomeData = Object.entries(monthlyIncome).map(
+      ([month, amount], index) => ({
+        x: index,
+        y: amount,
+      })
+    );
+    if (incomeData.length < 2) return (totalIncome * 1.05).toFixed(2);
+    const { slope, intercept } = simpleRegression(incomeData);
+    const nextMonthIndex = incomeData.length;
+    return (slope * nextMonthIndex + intercept).toFixed(2);
+  }, [monthlyIncome, totalIncome]);
+
+  const monthlyBookings = useMemo<Record<string, number>>(() => {
+    const months: Record<string, number> = {};
+    transactions
+      .filter((t) => t.type === "income")
+      .forEach((t) => {
+        const monthKey = t.date.slice(0, 7);
+        months[monthKey] = (months[monthKey] || 0) + 1;
+      });
+    return months;
+  }, [transactions]);
+
+  const predictedBookings = useMemo(() => {
+    const bookingData = Object.entries(monthlyBookings).map(
+      ([month, count], index) => ({
+        x: index,
+        y: count,
+      })
+    );
+    if (bookingData.length < 2)
+      return Math.round(
+        incomeTransactions.length / (Object.keys(monthlyBookings).length || 1)
+      );
+    const { slope, intercept } = simpleRegression(bookingData);
+    const nextMonthIndex = bookingData.length;
+    return Math.max(Math.round(slope * nextMonthIndex + intercept), 0);
+  }, [monthlyBookings, incomeTransactions]);
 
   const clientDetails = useMemo<ClientDetail[]>(() => {
     const byClient = incomeTransactions.reduce((acc, t) => {
@@ -140,7 +313,7 @@ export default function ClientRevenueApp() {
       acc[t.clientId] = (acc[t.clientId] || 0) + Number(t.amount);
       return acc;
     }, {} as Record<string, number>);
-    return monthClients.map(client => ({
+    return monthClients.map((client) => ({
       id: client.id,
       name: client.name,
       service: client.service,
@@ -149,162 +322,132 @@ export default function ClientRevenueApp() {
     }));
   }, [monthClients, incomeTransactions]);
 
-  const clientVisits = useMemo<Record<string, string[]>>(() => {
-    const visits: Record<string, string[]> = {};
-    monthClients.forEach(c => {
-      const name = c.name.trim().toLowerCase();
-      if (!visits[name]) visits[name] = [];
-      visits[name].push(c.date);
-    });
-    return visits;
-  }, [monthClients]);
-
-  const uniqueClients = Object.keys(clientVisits).length;
-  const repeatClients = Object.values(clientVisits).filter(v => v.length > 1).length;
-  const retentionRate = uniqueClients > 0 ? (repeatClients / uniqueClients * 100).toFixed(1) : '0';
-
-  const averageDays = useMemo(() => {
-    let totalAvg = 0;
-    let numRepeat = 0;
-    Object.values(clientVisits).forEach(visits => {
-      if (visits.length > 1) {
-        const sortedDates = visits.map(d => new Date(d)).sort((a, b) => a.getTime() - b.getTime());
-        let sumDiff = 0;
-        for (let i = 1; i < sortedDates.length; i++) {
-          sumDiff += (sortedDates[i].getTime() - sortedDates[i - 1].getTime()) / (1000 * 60 * 60 * 24);
-        }
-        totalAvg += sumDiff / (sortedDates.length - 1);
-        numRepeat++;
-      }
-    });
-    return numRepeat > 0 ? (totalAvg / numRepeat).toFixed(1) : '0';
-  }, [clientVisits]);
-
-  const monthlyIncome = useMemo<Record<string, number>>(() => {
-    const months: Record<string, number> = {};
-    transactions.filter(t => t.type === 'income').forEach(t => {
-      const monthKey = t.date.slice(0, 7);
-      months[monthKey] = (months[monthKey] || 0) + Number(t.amount);
-    });
-    return months;
-  }, [transactions]);
-
-  const numMonths = Object.keys(monthlyIncome).length;
-  const avgMonthlyIncome = numMonths > 0 ? Object.values(monthlyIncome).reduce((a, b) => a + b, 0) / numMonths : 0;
-  const forecastedIncome = (avgMonthlyIncome * 1.05).toFixed(2);
-
-  const monthlyBookings = useMemo<Record<string, number>>(() => {
-    const months: Record<string, number> = {};
-    transactions.filter(t => t.type === 'income').forEach(t => {
-      const monthKey = t.date.slice(0, 7);
-      months[monthKey] = (months[monthKey] || 0) + 1;
-    });
-    return months;
-  }, [transactions]);
-
-  const avgMonthlyBookings = numMonths > 0 ? Object.values(monthlyBookings).reduce((a, b) => a + b, 0) / numMonths : 0;
-  const predictedBookings = Math.round(avgMonthlyBookings);
-
   const recentTransactions = useMemo(() => {
-    return [...monthTransactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 4);
+    return [...monthTransactions]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 4);
   }, [monthTransactions]);
 
-  const handleModalSubmit = useCallback(async (data: any) => {
-    if (isSubmitting) return; // Prevent multiple submissions
+  const handleModalSubmit = useCallback(
+    async (data: any) => {
+      if (isSubmitting) return;
 
-    setIsSubmitting(true);
-    try {
-      if (data.type === 'income') {
-        const incomeDto: AddIncomeDto = {
-          clientName: data.name.trim(),
-          service: data.service,
-          amount: Number(data.amount),
-          date: data.date
-        };
-        const response = await api.addIncome(incomeDto);
-        
-        const adaptedClient = adaptApiClientToClient(response.client);
-        const adaptedTransaction = adaptApiTransactionToTransaction(response.transaction);
-        
-        setClients(prev => {
-          const clientExists = prev.find(c => c.id === adaptedClient.id);
-          if (clientExists) {
-            return prev.map(c => c.id === adaptedClient.id ? adaptedClient : c);
-          }
-          return [adaptedClient, ...prev];
-        });
-        setTransactions(prev => [adaptedTransaction, ...prev]);
-        setApiClients(prev => [...prev, response.client]);
-      } else if (data.type === 'expense') {
-        const expenseDto: AddExpenseDto = {
-          category: data.category,
-          amount: Number(data.amount),
-          date: data.date
-        };
-        const response = await api.addExpense(expenseDto);
-        const adaptedTransaction = adaptApiTransactionToTransaction(response.transaction);
-        setTransactions(prev => [adaptedTransaction, ...prev]);
-      }
-      setIsModalOpen(false);
-    } catch (error) {
-      console.error('Error submitting entry:', error);
-      // Error toast is handled in AddEntryModal
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [isSubmitting]);
-
-  const handleAddEntry = useCallback(async (data: any) => {
-    if (isSubmitting) return; // Prevent multiple submissions
-
-    try {
       setIsSubmitting(true);
-      if (data.type === 'income' && selectedClient) {
-        const apiClient = apiClients.find(c => c._id === selectedClient.id);
-        if (apiClient) {
-          const incomeDto: AddIncomeToClientDto = {
+      try {
+        if (data.type === "income") {
+          const incomeDto: AddIncomeDto = {
+            clientName: data.name.trim(),
             service: data.service,
             amount: Number(data.amount),
-            date: data.date
+            date: data.date,
           };
-          const response = await api.addIncomeToClient(apiClient._id, incomeDto);
-          
+          const response = await api.addIncome(incomeDto);
+
           const adaptedClient = adaptApiClientToClient(response.client);
-          const adaptedTransaction = adaptApiTransactionToTransaction(response.transaction);
-          
-          setClients(prev => prev.map(c => c.id === adaptedClient.id ? adaptedClient : c));
-          setTransactions(prev => [adaptedTransaction, ...prev]);
-          setApiClients(prev => prev.map(c => c._id === response.client._id ? response.client : c));
-          setIsClientDetailsOpen(false);
+          const adaptedTransaction = adaptApiTransactionToTransaction(
+            response.transaction
+          );
+
+          setClients((prev) => {
+            const clientExists = prev.find((c) => c.id === adaptedClient.id);
+            if (clientExists) {
+              return prev.map((c) =>
+                c.id === adaptedClient.id ? adaptedClient : c
+              );
+            }
+            return [adaptedClient, ...prev];
+          });
+          setTransactions((prev) => [adaptedTransaction, ...prev]);
+          setApiClients((prev) => [...prev, response.client]);
+        } else if (data.type === "expense") {
+          const incomeDto: AddExpenseDto = {
+            category: data.category,
+            amount: Number(data.amount),
+            date: data.date,
+          };
+          const response = await api.addExpense(incomeDto);
+          const adaptedTransaction = adaptApiTransactionToTransaction(
+            response.transaction
+          );
+          setTransactions((prev) => [adaptedTransaction, ...prev]);
         }
+        setIsModalOpen(false);
+      } catch (error) {
+        console.error("Error submitting entry:", error);
+      } finally {
+        setIsSubmitting(false);
       }
-    } catch (error) {
-      console.error('Error adding entry:', error);
-      // Error toast is handled in AddEntryModal
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [isSubmitting, selectedClient, apiClients]);
+    },
+    [isSubmitting]
+  );
+
+  const handleAddEntry = useCallback(
+    async (data: any) => {
+      if (isSubmitting) return;
+
+      try {
+        setIsSubmitting(true);
+        if (data.type === "income" && selectedClient) {
+          const apiClient = apiClients.find((c) => c._id === selectedClient.id);
+          if (apiClient) {
+            const incomeDto: AddIncomeToClientDto = {
+              service: data.service,
+              amount: Number(data.amount),
+              date: data.date,
+            };
+            const response = await api.addIncomeToClient(
+              apiClient._id,
+              incomeDto
+            );
+
+            const adaptedClient = adaptApiClientToClient(response.client);
+            const adaptedTransaction = adaptApiTransactionToTransaction(
+              response.transaction
+            );
+
+            setClients((prev) =>
+              prev.map((c) => (c.id === adaptedClient.id ? adaptedClient : c))
+            );
+            setTransactions((prev) => [adaptedTransaction, ...prev]);
+            setApiClients((prev) =>
+              prev.map((c) =>
+                c._id === response.client._id ? response.client : c
+              )
+            );
+            setIsClientDetailsOpen(false);
+          }
+        }
+      } catch (error) {
+        console.error("Error adding entry:", error);
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [isSubmitting, selectedClient, apiClients]
+  );
 
   const handleAddIncome = useCallback(() => {
-    setModalStep('income');
+    setModalStep("income");
     setSelectedClient(null);
     setIsModalOpen(true);
   }, []);
 
   const handleAddExpense = useCallback(() => {
-    setModalStep('expense');
+    setModalStep("expense");
     setSelectedClient(null);
     setIsModalOpen(true);
   }, []);
 
-  const handleClientClick = useCallback((clientDetail: ClientDetail) => {
-    const client = clients.find(c => c.id === clientDetail.id);
-    if (client) {
-      setSelectedClient(client);
-      setIsClientDetailsOpen(true);
-    }
-  }, [clients]);
+  const handleClientClick = useCallback(
+    (clientDetail: ClientDetail) => {
+      const client = clients.find((c) => c.id === clientDetail.id);
+      if (client) {
+        setSelectedClient(client);
+        setIsClientDetailsOpen(true);
+      }
+    },
+    [clients]
+  );
 
   const handleCloseClientDetails = useCallback(() => {
     setIsClientDetailsOpen(false);
@@ -321,15 +464,16 @@ export default function ClientRevenueApp() {
     }
 
     switch (currentPage) {
-      case 'overview':
+      case "overview":
         return (
           <main className="flex-1 bg-gray-50 min-h-screen lg:ml-56">
             <div className="pt-4 pb-20 lg:pb-8 lg:pt-8 p-4 sm:p-6 lg:p-8">
-              {/* Header */}
               <header className="mb-6 sm:mb-8">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard</h1>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                      Dashboard
+                    </h1>
                   </div>
                   <MonthFilter
                     selectedMonth={selectedMonth}
@@ -340,42 +484,51 @@ export default function ClientRevenueApp() {
                   />
                 </div>
               </header>
-
-              {/* Stats Overview */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
                 <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-green-300">
-                  <p className="text-xs sm:text-sm text-gray-600 mb-1">Total Income</p>
-                  <p className="text-lg sm:text-2xl font-bold text-green-700">£{totalIncome.toFixed(2)}</p>
+                  <p className="text-xs sm:text-sm text-gray-600 mb-1">
+                    Total Income
+                  </p>
+                  <p className="text-lg sm:text-2xl font-bold text-green-700">
+                    £{totalIncome.toFixed(2)}
+                  </p>
                 </div>
                 <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-red-300">
-                  <p className="text-xs sm:text-sm text-gray-600 mb-1">Total Expenses</p>
-                  <p className="text-lg sm:text-2xl font-bold text-red-700">£{totalExpenses.toFixed(2)}</p>
+                  <p className="text-xs sm:text-sm text-gray-600 mb-1">
+                    Total Expenses
+                  </p>
+                  <p className="text-lg sm:text-2xl font-bold text-red-700">
+                    £{totalExpenses.toFixed(2)}
+                  </p>
                 </div>
-                <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-300">
-                  <p className="text-xs sm:text-sm text-gray-600 mb-1">Net Balance</p>
-                  <p className="text-lg sm:text-2xl font-bold text-gray-700">£{balance.toFixed(2)}</p>
+                <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
+                  <p className="text-xs sm:text-sm text-gray-600 mb-1">
+                    Net Balance
+                  </p>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-700">
+                    £{balance.toFixed(2)}
+                  </p>
                 </div>
                 <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-blue-300">
-                  <p className="text-xs sm:text-sm text-gray-600 mb-1">Total Clients</p>
-                  <p className="text-lg sm:text-2xl font-bold text-blue-700">{monthClients.length}</p>
+                  <p className="text-xs sm:text-sm text-gray-600 mb-1">
+                    Total Clients
+                  </p>
+                  <p className="text-lg sm:text-2xl font-bold text-blue-700">
+                    {monthClients.length}
+                  </p>
                 </div>
               </div>
-
-              {/* Analytics Overview and Recent Activities */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 mb-6 sm:mb-8">
-                {/* Income vs Expenses Chart */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-                  <div className="p-4 sm:p-6 border-b border-gray-200">
-                    <h3 className="text-base sm:text-lg font-medium text-gray-900">
-                      Income vs Expenses
-                    </h3>
-                  </div>
-                  <div className="p-4 sm:px-6 sm:pt-6 sm:pb-4">
-                    <IncomeExpenseChart totalIncome={totalIncome} totalExpenses={totalExpenses} />
-                  </div>
-                </div>
-
-                {/* Recent Activity */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col">
+  <div className="p-4 sm:p-6 border-b border-gray-200">
+    <h3 className="text-base sm:text-lg font-medium text-gray-900">
+      Income vs Expenses
+    </h3>
+  </div>
+  <div className="flex-1 p-4 sm:p-6 min-h-[300px] sm:min-h-[350px]">
+    <IncomeExpenseChart totalIncome={totalIncome} totalExpenses={totalExpenses} />
+  </div>
+</div>
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200">
                   <div className="p-4 sm:p-6 border-b border-gray-200">
                     <h3 className="text-base sm:text-lg font-medium text-gray-900">
@@ -383,14 +536,20 @@ export default function ClientRevenueApp() {
                     </h3>
                   </div>
                   <div className="p-4 sm:p-6">
+                    {/* Potential line 371 near here */}
                     <div className="space-y-4">
                       {recentTransactions.length > 0 ? (
                         recentTransactions.map((tx) => {
-                          const client = monthClients.find(c => c.id === tx.clientId);
-                          const isIncome = tx.type === 'income';
-                          const bgColor = isIncome ? 'bg-green-50' : 'bg-red-50';
-                          const amountColor = isIncome ? 'text-green-600' : 'text-red-600';
-                          
+                          const client = monthClients.find(
+                            (c) => c.id === tx.clientId
+                          );
+                          const isIncome = tx.type === "income";
+                          const bgColor = isIncome
+                            ? "bg-green-50"
+                            : "bg-red-50";
+                          const amountColor = isIncome
+                            ? "text-green-600"
+                            : "text-red-600";
                           return (
                             <div
                               key={tx.id}
@@ -398,13 +557,22 @@ export default function ClientRevenueApp() {
                             >
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium text-gray-900">
-                                  {isIncome && client ? `${client.name} - ${tx.service || client.service}` : tx.category || 'Transaction'}
+                                  {isIncome && client
+                                    ? `${client.name} - ${
+                                        tx.service || client.service
+                                      }`
+                                    : tx.category || "Transaction"}
                                 </p>
                                 <span className="text-xs text-gray-500">
-                                  {new Date(tx.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                                  {new Date(tx.date).toLocaleDateString(
+                                    "en-GB",
+                                    { day: "numeric", month: "short" }
+                                  )}
                                 </span>
                               </div>
-                              <p className={`text-sm font-semibold ${amountColor} ml-4 flex-shrink-0`}>
+                              <p
+                                className={`text-sm font-semibold ${amountColor} ml-4 flex-shrink-0`}
+                              >
                                 £{tx.amount.toFixed(2)}
                               </p>
                             </div>
@@ -427,7 +595,9 @@ export default function ClientRevenueApp() {
                               />
                             </svg>
                           </div>
-                          <p className="text-gray-500 text-sm">No recent activities</p>
+                          <p className="text-gray-500 text-sm">
+                            No recent activities
+                          </p>
                           <p className="text-gray-400 text-xs mt-1">
                             Activities will appear as you add transactions
                           </p>
@@ -437,15 +607,15 @@ export default function ClientRevenueApp() {
                   </div>
                 </div>
               </div>
-
-              {/* Quick Actions - Desktop Only */}
               <div className="mb-6 sm:mb-8 hidden lg:block">
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
+                  Quick Actions
+                </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                   <button
                     className="p-4 bg-gray-50 hover:bg-gray-100 rounded-lg border border-blue-200 transition-colors"
                     onClick={() => {
-                      setModalStep('choose');
+                      setModalStep("choose");
                       setSelectedClient(null);
                       setIsModalOpen(true);
                     }}
@@ -455,38 +625,70 @@ export default function ClientRevenueApp() {
                       <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-400 rounded-lg flex items-center justify-center mx-auto mb-2 sm:mb-3">
                         <Plus className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                       </div>
-                      <p className="text-sm sm:text-base font-medium text-gray-900">Add Entry</p>
-                      <p className="text-xs sm:text-sm text-blue-600">Income or expense</p>
+                      <p className="text-sm sm:text-base font-medium text-gray-900">
+                        Add Entry
+                      </p>
+                      <p className="text-xs sm:text-sm text-blue-600">
+                        Income or expense
+                      </p>
                     </div>
                   </button>
                   <button
                     className="p-4 bg-gray-50 hover:bg-gray-100 rounded-lg border border-green-200 transition-colors"
-                    onClick={() => setCurrentPage('analytics')}
+                    onClick={() => setCurrentPage("analytics")}
                     disabled={isSubmitting}
                   >
                     <div className="text-center">
                       <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-400 rounded-lg flex items-center justify-center mx-auto mb-2 sm:mb-3">
-                        <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        <svg
+                          className="w-5 h-5 sm:w-6 sm:h-6 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
                         </svg>
                       </div>
-                      <p className="text-sm sm:text-base font-medium text-gray-900">View Analytics</p>
-                      <p className="text-xs sm:text-sm text-green-600">See reports & insights</p>
+                      <p className="text-sm sm:text-base font-medium text-gray-900">
+                        View Analytics
+                      </p>
+                      <p className="text-xs sm:text-sm text-green-600">
+                        See reports & insights
+                      </p>
                     </div>
                   </button>
                   <button
                     className="p-4 bg-gray-50 hover:bg-gray-100 rounded-lg border border-purple-200 transition-colors"
-                    onClick={() => setCurrentPage('clients')}
+                    onClick={() => setCurrentPage("clients")}
                     disabled={isSubmitting}
                   >
                     <div className="text-center">
                       <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-400 rounded-lg flex items-center justify-center mx-auto mb-2 sm:mb-3">
-                        <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                        <svg
+                          className="w-5 h-5 sm:w-6 sm:h-6 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
+                          />
                         </svg>
                       </div>
-                      <p className="text-sm sm:text-base font-medium text-gray-900">Manage Clients</p>
-                      <p className="text-xs sm:text-sm text-purple-600">View & edit clients</p>
+                      <p className="text-sm sm:text-base font-medium text-gray-900">
+                        Manage Clients
+                      </p>
+                      <p className="text-xs sm:text-sm text-purple-600">
+                        View & edit clients
+                      </p>
                     </div>
                   </button>
                 </div>
@@ -494,18 +696,20 @@ export default function ClientRevenueApp() {
             </div>
           </main>
         );
-      case 'clients':
+      case "clients":
         return (
           <main className="flex-1 bg-gray-50 min-h-screen lg:ml-56">
             {isClientDetailsOpen && (
-              <div 
+              <div
                 className="fixed inset-0 bg-black/30 z-40 transition-opacity duration-300 ease-in-out"
                 onClick={handleCloseClientDetails}
               />
             )}
             <div className="pt-4 pb-20 lg:pb-8 lg:pt-8 p-4 sm:p-6 lg:p-8">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Clients</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                  Clients
+                </h1>
                 <MonthFilter
                   selectedMonth={selectedMonth}
                   selectedYear={selectedYear}
@@ -514,29 +718,23 @@ export default function ClientRevenueApp() {
                   hideLabels={true}
                 />
               </div>
-              <ClientListTable 
-                clients={clientDetails} 
-                show={true} 
+              <ClientListTable
+                clients={clientDetails}
+                show={true}
                 onAddIncome={handleAddIncome}
                 onClientClick={handleClientClick}
               />
             </div>
-            <ClientDetails
-              client={selectedClient}
-              isOpen={isClientDetailsOpen}
-              onClose={handleCloseClientDetails}
-              transactions={transactions}
-              allClients={clients}
-              onAddEntry={handleAddEntry}
-            />
           </main>
         );
-      case 'expenses':
+      case "expenses":
         return (
           <main className="flex-1 bg-gray-50 min-h-screen lg:ml-56">
             <div className="pt-4 pb-20 lg:pb-8 lg:pt-8 p-4 sm:p-6 lg:p-8">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Expenses</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                  Expenses
+                </h1>
                 <MonthFilter
                   selectedMonth={selectedMonth}
                   selectedYear={selectedYear}
@@ -545,19 +743,21 @@ export default function ClientRevenueApp() {
                   hideLabels={true}
                 />
               </div>
-              <ExpenseListTable 
-                expenses={expenseTransactions} 
-                onAddExpense={handleAddExpense} 
+              <ExpenseListTable
+                expenses={expenseTransactions}
+                onAddExpense={handleAddExpense}
               />
             </div>
           </main>
         );
-      case 'analytics':
+      case "analytics":
         return (
           <main className="flex-1 bg-gray-50 min-h-screen lg:ml-56">
             <div className="pt-4 pb-20 lg:pb-8 lg:pt-8 p-4 sm:p-6 lg:p-8">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Analytics</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                  Analytics
+                </h1>
                 <MonthFilter
                   selectedMonth={selectedMonth}
                   selectedYear={selectedYear}
@@ -587,17 +787,17 @@ export default function ClientRevenueApp() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar 
-        currentPage={currentPage} 
+      <Sidebar
+        currentPage={currentPage}
         onPageChange={setCurrentPage}
         onAddClick={() => {
-          setModalStep('choose');
+          setModalStep("choose");
           setSelectedClient(null);
           setIsModalOpen(true);
         }}
       />
       {renderContent()}
-      <AddEntryModal 
+      <AddEntryModal
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
@@ -605,7 +805,7 @@ export default function ClientRevenueApp() {
         }}
         onSubmit={handleModalSubmit}
         initialStep={modalStep}
-        initialClientName={selectedClient?.name || ''}
+        initialClientName={selectedClient?.name || ""}
       />
       <Toaster position="top-right" />
     </div>
