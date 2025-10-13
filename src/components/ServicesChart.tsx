@@ -3,10 +3,8 @@ import {
   Bar,
   XAxis,
   YAxis,
-  Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ServiceCount } from "../types";
 
 interface ServicesChartProps {
@@ -27,19 +25,20 @@ export const ServicesChart: React.FC<ServicesChartProps> = ({ data }) => {
       >
         <XAxis
           dataKey="service"
-          tick={{ fontSize: 12 }}
+          tick={{ fontSize: 12, fill: document.documentElement.classList.contains('dark') ? '#d1d5db' : '#374151' }}
           angle={-45}
           textAnchor="end"
           height={60}
-          axisLine={true}
-          tickLine={true}
+          axisLine={{ stroke: document.documentElement.classList.contains('dark') ? '#4b5563' : '#e5e7eb' }}
+          tickLine={{ stroke: document.documentElement.classList.contains('dark') ? '#4b5563' : '#e5e7eb' }}
         />
         <YAxis 
-          tick={{ fontSize: 11 }} 
+          tick={{ fontSize: 11, fill: document.documentElement.classList.contains('dark') ? '#d1d5db' : '#374151' }}
           width={45}
-          allowDecimals={false} 
+          allowDecimals={false}
+          axisLine={{ stroke: document.documentElement.classList.contains('dark') ? '#4b5563' : '#e5e7eb' }}
+          tickLine={{ stroke: document.documentElement.classList.contains('dark') ? '#4b5563' : '#e5e7eb' }}
         />
-        <Tooltip />
         <Bar 
           dataKey="count" 
           fill="#3b82f6" 

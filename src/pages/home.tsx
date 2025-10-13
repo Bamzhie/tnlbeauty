@@ -23,7 +23,7 @@ import { ClientDetails } from "../components/ClientDetails";
 import { Toaster } from "react-hot-toast";
 import { IncomeExpenseChart } from "../components/IncomeExpenseChart";
 import { ExpenseListTable } from "../components/ExpenseListTable";
-import { Plus } from "lucide-react";
+import { Plus, Download, Moon, Sun } from "lucide-react";
 
 // Simple linear regression function (used for other metrics)
 const simpleRegression = (
@@ -93,6 +93,37 @@ export default function ClientRevenueApp() {
   const [isClientDetailsOpen, setIsClientDetailsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  // Initialize dark mode based on localStorage or system preference
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme");
+    const prefersDark = window.matchMedia(
+      "(prefers-color-scheme: dark)"
+    ).matches;
+
+    if (savedTheme === "dark" || (!savedTheme && prefersDark)) {
+      setIsDarkMode(true);
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
+
+  // Toggle dark mode
+  const toggleDarkMode = useCallback(() => {
+    setIsDarkMode((prev) => {
+      const newDarkMode = !prev;
+      if (newDarkMode) {
+        document.documentElement.classList.add("dark");
+        localStorage.setItem("theme", "dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+        localStorage.setItem("theme", "light");
+      }
+      return newDarkMode;
+    });
+  }, []);
 
   // Fetch data from API
   useEffect(() => {
@@ -454,11 +485,83 @@ export default function ClientRevenueApp() {
     setSelectedClient(null);
   }, []);
 
+  // report download
+  const downloadDashboardReport = () => {
+    const headers = [
+      "Type",
+      "Amount",
+      "Date",
+      "Category/Service",
+      "Client Name",
+    ];
+
+    const incomeData = incomeTransactions.map((tx) => {
+      const client = monthClients.find((c) => c.id === tx.clientId);
+      return [
+        "Income",
+        `£${tx.amount.toFixed(2)}`,
+        new Date(tx.date).toLocaleDateString("en-GB"),
+        tx.service || client?.service || "N/A",
+        client?.name || "N/A",
+      ];
+    });
+
+    const expenseData = expenseTransactions.map((tx) => [
+      "Expense",
+      `£${tx.amount.toFixed(2)}`,
+      new Date(tx.date).toLocaleDateString("en-GB"),
+      tx.category || "Uncategorized",
+      "N/A",
+    ]);
+
+    const incomeSection = [["INCOME TRANSACTIONS"], ...incomeData];
+    const expenseSection = [[], ["EXPENSE TRANSACTIONS"], ...expenseData];
+    const summary = [
+      [],
+      ["SUMMARY"],
+      [`Total Income,£${totalIncome.toFixed(2)}`],
+      [`Total Expenses,£${totalExpenses.toFixed(2)}`],
+      [`Net Balance,£${balance.toFixed(2)}`],
+      [`Total Clients,${monthClients.length}`],
+      [
+        `Period,${
+          selectedMonth === "all" ? "All Months" : `Month ${selectedMonth}`
+        } ${selectedYear}`,
+      ],
+    ];
+
+    const csvContent = [
+      headers.join(","),
+      ...incomeSection.map((row) =>
+        Array.isArray(row) ? row.map((field) => `"${field}"`).join(",") : row
+      ),
+      ...expenseSection.map((row) =>
+        Array.isArray(row) ? row.map((field) => `"${field}"`).join(",") : row
+      ),
+      ...summary.flat().map((row) => row),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `income_expense_report_${selectedYear}${
+        selectedMonth === "all" ? "" : `_${selectedMonth}`
+      }.csv`
+    );
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const renderContent = () => {
     if (isLoading) {
       return (
-        <main className="flex-1 bg-gray-50 min-h-screen lg:ml-56 flex items-center justify-center">
-          <p className="text-gray-500">Loading...</p>
+        <main className="flex-1 bg-gray-50 dark:bg-gray-900 min-h-screen lg:ml-56 flex items-center justify-center">
+          <p className="text-gray-500 dark:text-gray-400">Loading...</p>
         </main>
       );
     }
@@ -466,77 +569,96 @@ export default function ClientRevenueApp() {
     switch (currentPage) {
       case "overview":
         return (
-          <main className="flex-1 bg-gray-50 min-h-screen lg:ml-56">
+          <main className="flex-1 bg-gray-50 dark:bg-gray-900 min-h-screen lg:ml-56">
             <div className="pt-4 pb-20 lg:pb-8 lg:pt-8 p-4 sm:p-6 lg:p-8">
               <header className="mb-6 sm:mb-8">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
                       Dashboard
                     </h1>
                   </div>
-                  <MonthFilter
-                    selectedMonth={selectedMonth}
-                    selectedYear={selectedYear}
-                    onMonthChange={setSelectedMonth}
-                    onYearChange={setSelectedYear}
-                    hideLabels={true}
-                  />
+                  <div className="flex items-center gap-4">
+                    <MonthFilter
+                      selectedMonth={selectedMonth}
+                      selectedYear={selectedYear}
+                      onMonthChange={setSelectedMonth}
+                      onYearChange={setSelectedYear}
+                      hideLabels={true}
+                    />
+                    <button
+                      onClick={toggleDarkMode}
+                      className="p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      aria-label={
+                        isDarkMode
+                          ? "Switch to light mode"
+                          : "Switch to dark mode"
+                      }
+                    >
+                      {isDarkMode ? (
+                        <Sun className="w-5 h-5 text-yellow-500" />
+                      ) : (
+                        <Moon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                      )}
+                    </button>
+                  </div>
                 </div>
               </header>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-                <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-green-300">
-                  <p className="text-xs sm:text-sm text-gray-600 mb-1">
+                <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-xl shadow-sm border border-green-300 dark:border-green-600">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-1">
                     Total Income
                   </p>
-                  <p className="text-lg sm:text-2xl font-bold text-green-700">
+                  <p className="text-lg sm:text-2xl font-bold text-green-700 dark:text-green-400">
                     £{totalIncome.toFixed(2)}
                   </p>
                 </div>
-                <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-red-300">
-                  <p className="text-xs sm:text-sm text-gray-600 mb-1">
+                <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-xl shadow-sm border border-red-300 dark:border-red-600">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-1">
                     Total Expenses
                   </p>
-                  <p className="text-lg sm:text-2xl font-bold text-red-700">
+                  <p className="text-lg sm:text-2xl font-bold text-red-700 dark:text-red-400">
                     £{totalExpenses.toFixed(2)}
                   </p>
                 </div>
-                <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
-                  <p className="text-xs sm:text-sm text-gray-600 mb-1">
+                <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-600">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-1">
                     Net Balance
                   </p>
-                  <p className="text-lg sm:text-2xl font-bold text-gray-700">
+                  <p className="text-lg sm:text-2xl font-bold text-gray-700 dark:text-gray-200">
                     £{balance.toFixed(2)}
                   </p>
                 </div>
-                <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-blue-300">
-                  <p className="text-xs sm:text-sm text-gray-600 mb-1">
+                <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-xl shadow-sm border border-blue-300 dark:border-blue-600">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-1">
                     Total Clients
                   </p>
-                  <p className="text-lg sm:text-2xl font-bold text-blue-700">
+                  <p className="text-lg sm:text-2xl font-bold text-blue-700 dark:text-blue-400">
                     {monthClients.length}
                   </p>
                 </div>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 mb-6 sm:mb-8">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col">
-  <div className="p-4 sm:p-6 border-b border-gray-200">
-    <h3 className="text-base sm:text-lg font-medium text-gray-900">
-      Income vs Expenses
-    </h3>
-  </div>
-  <div className="flex-1 p-4 sm:p-6 min-h-[300px] sm:min-h-[350px]">
-    <IncomeExpenseChart totalIncome={totalIncome} totalExpenses={totalExpenses} />
-  </div>
-</div>
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-                  <div className="p-4 sm:p-6 border-b border-gray-200">
-                    <h3 className="text-base sm:text-lg font-medium text-gray-900">
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col">
+                  <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-600">
+                    <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white">
+                      Income vs Expenses
+                    </h3>
+                  </div>
+                  <div className="flex-1 p-4 sm:p-6 min-h-[300px] sm:min-h-[350px]">
+                    <IncomeExpenseChart
+                      totalIncome={totalIncome}
+                      totalExpenses={totalExpenses}
+                    />
+                  </div>
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                  <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-600">
+                    <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white">
                       Recent Activity
                     </h3>
                   </div>
                   <div className="p-4 sm:p-6">
-                    {/* Potential line 371 near here */}
                     <div className="space-y-4">
                       {recentTransactions.length > 0 ? (
                         recentTransactions.map((tx) => {
@@ -545,25 +667,25 @@ export default function ClientRevenueApp() {
                           );
                           const isIncome = tx.type === "income";
                           const bgColor = isIncome
-                            ? "bg-green-50"
-                            : "bg-red-50";
+                            ? "bg-green-50 dark:bg-green-900/50"
+                            : "bg-red-50 dark:bg-red-900/50";
                           const amountColor = isIncome
-                            ? "text-green-600"
-                            : "text-red-600";
+                            ? "text-green-600 dark:text-green-400"
+                            : "text-red-600 dark:text-red-400";
                           return (
                             <div
                               key={tx.id}
                               className={`flex items-center justify-between p-3 ${bgColor} rounded-lg`}
                             >
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900">
+                                <p className="text-sm font-medium text-gray-900 dark:text-white">
                                   {isIncome && client
                                     ? `${client.name} - ${
                                         tx.service || client.service
                                       }`
                                     : tx.category || "Transaction"}
                                 </p>
-                                <span className="text-xs text-gray-500">
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
                                   {new Date(tx.date).toLocaleDateString(
                                     "en-GB",
                                     { day: "numeric", month: "short" }
@@ -580,9 +702,9 @@ export default function ClientRevenueApp() {
                         })
                       ) : (
                         <div className="text-center py-8">
-                          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                          <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-3">
                             <svg
-                              className="w-6 h-6 text-gray-400"
+                              className="w-6 h-6 text-gray-400 dark:text-gray-300"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -595,10 +717,10 @@ export default function ClientRevenueApp() {
                               />
                             </svg>
                           </div>
-                          <p className="text-gray-500 text-sm">
+                          <p className="text-gray-500 dark:text-gray-400 text-sm">
                             No recent activities
                           </p>
-                          <p className="text-gray-400 text-xs mt-1">
+                          <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">
                             Activities will appear as you add transactions
                           </p>
                         </div>
@@ -607,13 +729,13 @@ export default function ClientRevenueApp() {
                   </div>
                 </div>
               </div>
-              <div className="mb-6 sm:mb-8 hidden lg:block">
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
+              <div className="mb-6 sm:mb-8">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">
                   Quick Actions
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4">
                   <button
-                    className="p-4 bg-gray-50 hover:bg-gray-100 rounded-lg border border-blue-200 transition-colors"
+                    className="p-2 sm:p-4 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg border border-blue-200 dark:border-blue-600 transition-colors"
                     onClick={() => {
                       setModalStep("choose");
                       setSelectedClient(null);
@@ -622,26 +744,26 @@ export default function ClientRevenueApp() {
                     disabled={isSubmitting}
                   >
                     <div className="text-center">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-400 rounded-lg flex items-center justify-center mx-auto mb-2 sm:mb-3">
-                        <Plus className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-blue-400 dark:bg-blue-500 rounded-lg flex items-center justify-center mx-auto mb-1 sm:mb-2 lg:mb-3">
+                        <Plus className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                       </div>
-                      <p className="text-sm sm:text-base font-medium text-gray-900">
+                      <p className="text-xs sm:text-sm lg:text-base font-medium text-gray-900 dark:text-white">
                         Add Entry
                       </p>
-                      <p className="text-xs sm:text-sm text-blue-600">
+                      <p className="text-xs text-blue-600 dark:text-blue-400 hidden sm:block">
                         Income or expense
                       </p>
                     </div>
                   </button>
                   <button
-                    className="p-4 bg-gray-50 hover:bg-gray-100 rounded-lg border border-green-200 transition-colors"
+                    className="p-2 sm:p-4 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg border border-green-200 dark:border-green-600 transition-colors"
                     onClick={() => setCurrentPage("analytics")}
                     disabled={isSubmitting}
                   >
                     <div className="text-center">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-400 rounded-lg flex items-center justify-center mx-auto mb-2 sm:mb-3">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-green-400 dark:bg-green-500 rounded-lg flex items-center justify-center mx-auto mb-1 sm:mb-2 lg:mb-3">
                         <svg
-                          className="w-5 h-5 sm:w-6 sm:h-6 text-white"
+                          className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -654,23 +776,23 @@ export default function ClientRevenueApp() {
                           />
                         </svg>
                       </div>
-                      <p className="text-sm sm:text-base font-medium text-gray-900">
+                      <p className="text-xs sm:text-sm lg:text-base font-medium text-gray-900 dark:text-white">
                         View Analytics
                       </p>
-                      <p className="text-xs sm:text-sm text-green-600">
+                      <p className="text-xs text-green-600 dark:text-green-400 hidden sm:block">
                         See reports & insights
                       </p>
                     </div>
                   </button>
                   <button
-                    className="p-4 bg-gray-50 hover:bg-gray-100 rounded-lg border border-purple-200 transition-colors"
+                    className="p-2 sm:p-4 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg border border-purple-200 dark:border-purple-600 transition-colors"
                     onClick={() => setCurrentPage("clients")}
                     disabled={isSubmitting}
                   >
                     <div className="text-center">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-400 rounded-lg flex items-center justify-center mx-auto mb-2 sm:mb-3">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-purple-400 dark:bg-purple-500 rounded-lg flex items-center justify-center mx-auto mb-1 sm:mb-2 lg:mb-3">
                         <svg
-                          className="w-5 h-5 sm:w-6 sm:h-6 text-white"
+                          className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -683,11 +805,32 @@ export default function ClientRevenueApp() {
                           />
                         </svg>
                       </div>
-                      <p className="text-sm sm:text-base font-medium text-gray-900">
+                      <p className="text-xs sm:text-sm lg:text-base font-medium text-gray-900 dark:text-white">
                         Manage Clients
                       </p>
-                      <p className="text-xs sm:text-sm text-purple-600">
+                      <p className="text-xs text-purple-600 dark:text-purple-400 hidden sm:block">
                         View & edit clients
+                      </p>
+                    </div>
+                  </button>
+                  <button
+                    className="p-2 sm:p-4 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg border border-orange-200 dark:border-orange-600 transition-colors"
+                    onClick={downloadDashboardReport}
+                    disabled={
+                      isSubmitting ||
+                      (incomeTransactions.length === 0 &&
+                        expenseTransactions.length === 0)
+                    }
+                  >
+                    <div className="text-center">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-orange-400 dark:bg-orange-500 rounded-lg flex items-center justify-center mx-auto mb-1 sm:mb-2 lg:mb-3">
+                        <Download className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
+                      </div>
+                      <p className="text-xs sm:text-sm lg:text-base font-medium text-gray-900 dark:text-white">
+                        Download Report
+                      </p>
+                      <p className="text-xs text-orange-600 dark:text-orange-400 hidden sm:block">
+                        Income & Expenses
                       </p>
                     </div>
                   </button>
@@ -696,52 +839,88 @@ export default function ClientRevenueApp() {
             </div>
           </main>
         );
-      case "clients":
+    case "clients":
+  return (
+    <main className="flex-1 bg-gray-50 dark:bg-gray-900 min-h-screen lg:ml-56">
+      {isClientDetailsOpen && (
+        <div
+          className="fixed inset-0 bg-black/30 dark:bg-black/50 z-40 transition-opacity duration-300 ease-in-out"
+          onClick={handleCloseClientDetails}
+        />
+      )}
+      <div className="pt-4 pb-20 lg:pb-8 lg:pt-8 p-4 sm:p-6 lg:p-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+            Clients
+          </h1>
+          <div className="flex items-center gap-4">
+            <MonthFilter
+              selectedMonth={selectedMonth}
+              selectedYear={selectedYear}
+              onMonthChange={setSelectedMonth}
+              onYearChange={setSelectedYear}
+              hideLabels={true}
+            />
+            <button
+              onClick={toggleDarkMode}
+              className="p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {isDarkMode ? (
+                <Sun className="w-5 h-5 text-yellow-500" />
+              ) : (
+                <Moon className="w-5 h-5 text-gray-600" />
+              )}
+            </button>
+          </div>
+        </div>
+        <ClientListTable
+          clients={clientDetails}
+          show={true}
+          onAddIncome={handleAddIncome}
+          onClientClick={handleClientClick}
+        />
+      </div>
+      {isClientDetailsOpen && (
+        <ClientDetails
+          client={selectedClient}
+          isOpen={isClientDetailsOpen}
+          onClose={handleCloseClientDetails}
+          transactions={monthTransactions}
+          allClients={monthClients}
+          onAddEntry={handleAddEntry}
+        />
+      )}
+    </main>
+  );
+        case "expenses":
         return (
-          <main className="flex-1 bg-gray-50 min-h-screen lg:ml-56">
-            {isClientDetailsOpen && (
-              <div
-                className="fixed inset-0 bg-black/30 z-40 transition-opacity duration-300 ease-in-out"
-                onClick={handleCloseClientDetails}
-              />
-            )}
+          <main className="flex-1 bg-gray-50 dark:bg-gray-900 min-h-screen lg:ml-56">
             <div className="pt-4 pb-20 lg:pb-8 lg:pt-8 p-4 sm:p-6 lg:p-8">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                  Clients
-                </h1>
-                <MonthFilter
-                  selectedMonth={selectedMonth}
-                  selectedYear={selectedYear}
-                  onMonthChange={setSelectedMonth}
-                  onYearChange={setSelectedYear}
-                  hideLabels={true}
-                />
-              </div>
-              <ClientListTable
-                clients={clientDetails}
-                show={true}
-                onAddIncome={handleAddIncome}
-                onClientClick={handleClientClick}
-              />
-            </div>
-          </main>
-        );
-      case "expenses":
-        return (
-          <main className="flex-1 bg-gray-50 min-h-screen lg:ml-56">
-            <div className="pt-4 pb-20 lg:pb-8 lg:pt-8 p-4 sm:p-6 lg:p-8">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
                   Expenses
                 </h1>
-                <MonthFilter
-                  selectedMonth={selectedMonth}
-                  selectedYear={selectedYear}
-                  onMonthChange={setSelectedMonth}
-                  onYearChange={setSelectedYear}
-                  hideLabels={true}
-                />
+                <div className="flex items-center gap-4">
+                  <MonthFilter
+                    selectedMonth={selectedMonth}
+                    selectedYear={selectedYear}
+                    onMonthChange={setSelectedMonth}
+                    onYearChange={setSelectedYear}
+                    hideLabels={true}
+                  />
+                  <button
+                    onClick={toggleDarkMode}
+                    className="p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+                  >
+                    {isDarkMode ? (
+                      <Sun className="w-5 h-5 text-yellow-500" />
+                    ) : (
+                      <Moon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                    )}
+                  </button>
+                </div>
               </div>
               <ExpenseListTable
                 expenses={expenseTransactions}
@@ -752,19 +931,32 @@ export default function ClientRevenueApp() {
         );
       case "analytics":
         return (
-          <main className="flex-1 bg-gray-50 min-h-screen lg:ml-56">
+          <main className="flex-1 bg-gray-50 dark:bg-gray-900 min-h-screen lg:ml-56">
             <div className="pt-4 pb-20 lg:pb-8 lg:pt-8 p-4 sm:p-6 lg:p-8">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
                   Analytics
                 </h1>
-                <MonthFilter
-                  selectedMonth={selectedMonth}
-                  selectedYear={selectedYear}
-                  onMonthChange={setSelectedMonth}
-                  onYearChange={setSelectedYear}
-                  hideLabels={true}
-                />
+                <div className="flex items-center gap-4">
+                  <MonthFilter
+                    selectedMonth={selectedMonth}
+                    selectedYear={selectedYear}
+                    onMonthChange={setSelectedMonth}
+                    onYearChange={setSelectedYear}
+                    hideLabels={true}
+                  />
+                  <button
+                    onClick={toggleDarkMode}
+                    className="p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+                  >
+                    {isDarkMode ? (
+                      <Sun className="w-5 h-5 text-yellow-500" />
+                    ) : (
+                      <Moon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                    )}
+                  </button>
+                </div>
               </div>
               <AnalyticsSection
                 show={true}
@@ -786,7 +978,7 @@ export default function ClientRevenueApp() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
       <Sidebar
         currentPage={currentPage}
         onPageChange={setCurrentPage}

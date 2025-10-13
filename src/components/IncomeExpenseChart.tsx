@@ -3,7 +3,6 @@ import {
   Bar,
   XAxis,
   YAxis,
-  Tooltip,
   Cell,
   ResponsiveContainer,
 } from "recharts";
@@ -27,12 +26,16 @@ export const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
       <BarChart data={data} margin={{ top: 10, right: 10, bottom: 30, left: 20 }}>
         <XAxis 
           dataKey="name" 
-          tick={{ fontSize: 12 }} 
-          axisLine={true}
-          tickLine={true}
+          tick={{ fontSize: 12, fill: document.documentElement.classList.contains('dark') ? '#d1d5db' : '#374151' }} 
+          axisLine={{ stroke: document.documentElement.classList.contains('dark') ? '#4b5563' : '#e5e7eb' }}
+          tickLine={{ stroke: document.documentElement.classList.contains('dark') ? '#4b5563' : '#e5e7eb' }}
         />
-        <YAxis tick={{ fontSize: 11 }} width={45} />
-        <Tooltip />
+        <YAxis 
+          tick={{ fontSize: 11, fill: document.documentElement.classList.contains('dark') ? '#d1d5db' : '#374151' }} 
+          width={45}
+          axisLine={{ stroke: document.documentElement.classList.contains('dark') ? '#4b5563' : '#e5e7eb' }}
+          tickLine={{ stroke: document.documentElement.classList.contains('dark') ? '#4b5563' : '#e5e7eb' }}
+        />
         <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={50}>
           <Cell fill="#16a34a" />
           <Cell fill="#dc2626" />

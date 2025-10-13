@@ -1,13 +1,12 @@
+interface MonthFilterProps {
+  selectedMonth: string | number;
+  selectedYear: number;
+  onMonthChange: (month: string | number) => void;
+  onYearChange: (year: number) => void;
+  hideLabels?: boolean;
+}
 
-   interface MonthFilterProps {
-     selectedMonth: string | number;
-     selectedYear: number;
-     onMonthChange: (month: string | number) => void;
-     onYearChange: (year: number) => void;
-     hideLabels?: boolean;
-   }
-
-  export function MonthFilter ({ selectedMonth, selectedYear, onMonthChange, onYearChange }: any) {
+export function MonthFilter({ selectedMonth, selectedYear, onMonthChange, onYearChange, hideLabels }: MonthFilterProps) {
   const months = [
     { value: 'all', label: 'All' },
     { value: 0, label: 'Jan' },
@@ -31,7 +30,7 @@
       <select
         value={selectedMonth}
         onChange={(e) => onMonthChange(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-        className="text-sm px-2 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="text-sm px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-white"
       >
         {months.map((month) => (
           <option key={month.value} value={month.value}>{month.label}</option>
@@ -40,7 +39,7 @@
       <select
         value={selectedYear}
         onChange={(e) => onYearChange(Number(e.target.value))}
-        className="text-sm px-2 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="text-sm px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-white"
       >
         {years.map((year) => (
           <option key={year} value={year}>{year}</option>
@@ -48,4 +47,4 @@
       </select>
     </div>
   );
-};
+}

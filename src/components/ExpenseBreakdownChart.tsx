@@ -42,38 +42,45 @@ export const ExpenseBreakdownChart: React.FC<ExpenseBreakdownChartProps> = ({
       </CardHeader>
       <CardContent>
         <div className="h-56 sm:h-72">
-          <div className="flex flex-col items-center justify-center gap-4">
-            <ResponsiveContainer width="100%" height={180}>
-              <PieChart>
-                <Pie
-                  data={chartData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={60}
-                  labelLine={false}
-                  label={renderCustomLabel as any}
-                  dataKey="value"
-                >
-                  {chartData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={EXPENSE_COLORS[entry.name] || "#a1a1aa"}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs">
-              {Object.entries(EXPENSE_COLORS).map(([name, color]) => (
-                <div key={name} className="flex items-center gap-2">
-                  <span
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: color }}
-                  ></span>
-                  <span>{name}</span>
-                </div>
-              ))}
+          <div className="flex h-full items-center gap-4">
+            {/* Pie Chart Side */}
+            <div className="flex-1 h-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={chartData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    labelLine={false}
+                    label={renderCustomLabel as any}
+                    dataKey="value"
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={EXPENSE_COLORS[entry.name] || "#a1a1aa"}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            
+            {/* Legend Side - Narrow container to force vertical layout */}
+            <div className="w-24 flex-shrink-0">
+              <div className="flex flex-col gap-2">
+                {chartData.map((entry) => (
+                  <div key={entry.name} className="flex items-center gap-2">
+                    <span
+                      className="w-3 h-3 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: EXPENSE_COLORS[entry.name] || "#a1a1aa" }}
+                    ></span>
+                    <span className="text-xs text-gray-700 whitespace-nowrap">{entry.name}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
