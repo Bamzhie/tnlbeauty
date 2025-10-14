@@ -4,17 +4,24 @@ import {
   Package, 
   Users, 
   Settings as SettingsIcon,
-  Plus
+  Plus,
 } from 'lucide-react';
 
 interface SidebarProps {
-  currentPage: 'overview' | 'clients' | 'expenses' | 'settings';
-  onPageChange: (page: 'overview' | 'clients' | 'expenses' | 'settings') => void;
+  currentPage: 'overview' | 'clients' | 'expenses' | 'settings' | 'analytics';
+  onPageChange: (page: 'overview' | 'clients' | 'expenses' | 'settings' | 'analytics') => void;
   onAddClick: () => void;
 }
 
+// Define a type for navigation items to ensure id matches the expected union type
+interface NavigationItem {
+  name: string;
+  id: 'overview' | 'clients' | 'expenses' | 'settings';
+  icon: React.ComponentType<{ className?: string }>;
+}
+
 export function Sidebar({ currentPage, onPageChange, onAddClick }: SidebarProps) {
-  const navigation = [
+  const navigation: NavigationItem[] = [
     { name: 'Overview', id: 'overview', icon: LayoutDashboard },
     { name: 'Clients', id: 'clients', icon: Users },
     { name: 'Expenses', id: 'expenses', icon: Package },
@@ -121,7 +128,7 @@ export function Sidebar({ currentPage, onPageChange, onAddClick }: SidebarProps)
               return (
                 <li key={item.id}>
                   <button
-                    onClick={() => onPageChange(item.id as any)}
+                    onClick={() => onPageChange(item.id)}
                     className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors duration-200 w-full text-left ${
                       isActive
                         ? 'bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 border-r-2 border-blue-500 dark:border-blue-400'

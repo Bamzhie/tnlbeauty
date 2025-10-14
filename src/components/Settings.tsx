@@ -1,33 +1,17 @@
+// Modified Settings.tsx
 import React, { useState } from 'react';
-import { AnalyticsSection } from './AnalyticsSection';
 import { Button } from '@/components/ui/button';
 import { Moon, Sun, X } from 'lucide-react';
 import api from '../service/api';
 import { Toaster, toast } from 'react-hot-toast';
 
 interface SettingsProps {
-  totalIncome: number;
-  totalExpenses: number;
-  pieData: { name: string; value: number }[];
-  serviceData: { service: string; count: number }[];
-  retentionRate: string;
-  averageDays: string;
-  forecastedIncome: string;
-  predictedBookings: number;
   isDarkMode: boolean;
   toggleDarkMode: () => void;
   onDataCleared: () => void;
 }
 
 export function Settings({
-  totalIncome,
-  totalExpenses,
-  pieData,
-  serviceData,
-  retentionRate,
-  averageDays,
-  forecastedIncome,
-  predictedBookings,
   isDarkMode,
   toggleDarkMode,
   onDataCleared,
@@ -59,9 +43,7 @@ export function Settings({
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
-      <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-6">
-        Settings
-      </h1>
+    
       <div className="space-y-6">
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-600">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Preferences</h2>
@@ -79,20 +61,6 @@ export function Settings({
               {isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             </span>
           </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-600">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Analytics</h2>
-          <AnalyticsSection
-            show={true}
-            totalIncome={totalIncome}
-            totalExpenses={totalExpenses}
-            pieData={pieData}
-            serviceData={serviceData}
-            retentionRate={retentionRate}
-            averageDays={averageDays}
-            forecastedIncome={forecastedIncome}
-            predictedBookings={predictedBookings}
-          />
         </div>
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-600">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Data Management</h2>

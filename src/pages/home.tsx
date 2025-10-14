@@ -24,6 +24,7 @@ import { IncomeExpenseChart } from "../components/IncomeExpenseChart";
 import { ExpenseListTable } from "../components/ExpenseListTable";
 import { Settings } from "../components/Settings";
 import { Plus, Download } from "lucide-react";
+import { AnalyticsSection } from "../components/AnalyticsSection";
 
 // Simple linear regression function (used for other metrics)
 const simpleRegression = (
@@ -83,7 +84,7 @@ export default function ClientRevenueApp() {
     new Date().getFullYear()
   );
   const [currentPage, setCurrentPage] = useState<
-    "overview" | "clients" | "expenses" | "settings"
+    "overview" | "clients" | "expenses" | "settings" | "analytics"
   >("overview");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalStep, setModalStep] = useState<"choose" | "income" | "expense">(
@@ -762,7 +763,7 @@ const clientDetails = useMemo<ClientDetail[]>(() => {
                   </button>
                   <button
                     className="p-2 sm:p-4 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg border border-green-200 dark:border-green-600 transition-colors"
-                    onClick={() => setCurrentPage("settings")}
+                    onClick={() => setCurrentPage("analytics")}
                     disabled={isSubmitting}
                   >
                     <div className="text-center">
@@ -912,13 +913,39 @@ const clientDetails = useMemo<ClientDetail[]>(() => {
             </div>
           </main>
         );
-      case "settings":
+     case "settings":
+  return (
+    <main className="flex-1 bg-gray-50 dark:bg-gray-900 min-h-screen lg:ml-56">
+      <div className="pt-4 pb-20 lg:pb-8 lg:pt-8 p-4 sm:p-6 lg:p-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+            Settings
+          </h1>
+          <div className="flex items-center gap-4">
+            <MonthFilter
+              selectedMonth={selectedMonth}
+              selectedYear={selectedYear}
+              onMonthChange={setSelectedMonth}
+              onYearChange={setSelectedYear}
+              hideLabels={true}
+            />
+          </div>
+        </div>
+        <Settings
+          isDarkMode={isDarkMode}
+          toggleDarkMode={toggleDarkMode}
+          onDataCleared={handleDataCleared}
+        />
+      </div>
+    </main>
+  );
+        case "analytics":
         return (
           <main className="flex-1 bg-gray-50 dark:bg-gray-900 min-h-screen lg:ml-56">
             <div className="pt-4 pb-20 lg:pb-8 lg:pt-8 p-4 sm:p-6 lg:p-8">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-                  Settings
+                  Analytics
                 </h1>
                 <div className="flex items-center gap-4">
                   <MonthFilter
@@ -930,7 +957,8 @@ const clientDetails = useMemo<ClientDetail[]>(() => {
                   />
                 </div>
               </div>
-              <Settings
+              <AnalyticsSection
+                show={true}
                 totalIncome={totalIncome}
                 totalExpenses={totalExpenses}
                 pieData={pieData}
@@ -939,14 +967,11 @@ const clientDetails = useMemo<ClientDetail[]>(() => {
                 averageDays={averageDays}
                 forecastedIncome={forecastedIncome}
                 predictedBookings={predictedBookings}
-                isDarkMode={isDarkMode}
-                toggleDarkMode={toggleDarkMode}
-                onDataCleared={handleDataCleared}
               />
             </div>
           </main>
         );
-      default:
+        default:
         return null;
     }
   };
