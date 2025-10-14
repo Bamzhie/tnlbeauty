@@ -17,6 +17,7 @@ export const AddEntryModal: React.FC<AddEntryModalProps> = ({ isOpen, onClose, o
     service: '',
     customService: '',
     category: 'Supplies',
+    customCategory: '',
     amount: '',
     date: new Date().toISOString().slice(0, 10),
   });
@@ -31,6 +32,7 @@ export const AddEntryModal: React.FC<AddEntryModalProps> = ({ isOpen, onClose, o
         service: '',
         customService: '',
         category: 'Supplies',
+        customCategory: '',
         amount: '',
         date: new Date().toISOString().slice(0, 10),
       });
@@ -52,6 +54,10 @@ export const AddEntryModal: React.FC<AddEntryModalProps> = ({ isOpen, onClose, o
         toast.error('Service is required');
         return;
       }
+      if (formData.service === 'Other' && !formData.customService.trim()) {
+        toast.error('Custom service is required');
+        return;
+      }
       if (!formData.amount || Number(formData.amount) <= 0) {
         toast.error('Valid amount is required');
         return;
@@ -59,6 +65,10 @@ export const AddEntryModal: React.FC<AddEntryModalProps> = ({ isOpen, onClose, o
     } else if (step === 'expense') {
       if (!formData.amount || Number(formData.amount) <= 0) {
         toast.error('Valid amount is required');
+        return;
+      }
+      if (formData.category === 'Other' && !formData.customCategory.trim()) {
+        toast.error('Custom category is required');
         return;
       }
     }
@@ -69,6 +79,7 @@ export const AddEntryModal: React.FC<AddEntryModalProps> = ({ isOpen, onClose, o
         type: step,
         ...formData,
         service: formData.service === 'Other' ? formData.customService : formData.service,
+        category: formData.category === 'Other' ? formData.customCategory : formData.category,
       });
       toast.success(`${step === 'income' ? 'Income' : 'Expense'} added successfully`);
     } catch (error) {
@@ -270,6 +281,22 @@ export const AddEntryModal: React.FC<AddEntryModalProps> = ({ isOpen, onClose, o
                   <option value="Other">Other</option>
                 </select>
               </div>
+
+              {formData.category === 'Other' && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                    Custom Category *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.customCategory}
+                    onChange={(e) => setFormData({ ...formData, customCategory: e.target.value })}
+                    placeholder="Enter custom category"
+                    className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent bg-white dark:bg-gray-700 dark:text-white"
+                    disabled={isSubmitting}
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">

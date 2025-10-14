@@ -85,8 +85,77 @@ export function AnalyticsSection({
     ],
   };
 
-  const chartOptions = {
+  // Options for PIE CHART (no scales!)
+  const pieChartOptions = {
     responsive: true,
+    maintainAspectRatio: false,
+    layout: {
+      padding: {
+        top: 20,
+        bottom: 20,
+        left: 40,
+        right: 40,
+      },
+    },
+    plugins: {
+      legend: { 
+        position: "top" as const,
+        labels: {
+          color: "#374151", // gray-700
+          usePointStyle: true,
+          font: {
+            size: 12,
+          },
+        },
+      },
+      title: { display: false },
+      tooltip: {
+        backgroundColor: "#ffffff",
+        titleColor: "#111827", // gray-900
+        bodyColor: "#111827", // gray-900
+        borderColor: "#d1d5db", // gray-300
+        borderWidth: 1,
+      },
+    },
+  };
+
+  const darkPieChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: {
+      padding: {
+        top: 20,
+        bottom: 20,
+        left: 40,
+        right: 40,
+      },
+    },
+    plugins: {
+      legend: { 
+        position: "top" as const,
+        labels: {
+          color: "#d1d5db", // gray-300
+          usePointStyle: true,
+          font: {
+            size: 12,
+          },
+        },
+      },
+      title: { display: false },
+      tooltip: {
+        backgroundColor: "#1f2937", // gray-800
+        titleColor: "#ffffff", // white
+        bodyColor: "#ffffff", // white
+        borderColor: "#4b5563", // gray-600
+        borderWidth: 1,
+      },
+    },
+  };
+
+  // Options for BAR CHART (with scales)
+  const barChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: { 
         position: "top" as const,
@@ -127,28 +196,31 @@ export function AnalyticsSection({
     },
   };
 
-  const darkChartOptions = {
-    ...chartOptions,
+  const darkBarChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
     plugins: {
-      ...chartOptions.plugins,
-      legend: {
-        ...chartOptions.plugins.legend,
+      legend: { 
+        position: "top" as const,
         labels: {
-          ...chartOptions.plugins.legend.labels,
           color: "#d1d5db", // gray-300
+          usePointStyle: true,
+          font: {
+            size: 12,
+          },
         },
       },
+      title: { display: false },
       tooltip: {
-        ...chartOptions.plugins.tooltip,
         backgroundColor: "#1f2937", // gray-800
         titleColor: "#ffffff", // white
         bodyColor: "#ffffff", // white
         borderColor: "#4b5563", // gray-600
+        borderWidth: 1,
       },
     },
     scales: {
       x: {
-        ...chartOptions.scales.x,
         ticks: {
           color: "#d1d5db", // gray-300
         },
@@ -157,7 +229,6 @@ export function AnalyticsSection({
         },
       },
       y: {
-        ...chartOptions.scales.y,
         ticks: {
           color: "#d1d5db", // gray-300
         },
@@ -167,6 +238,8 @@ export function AnalyticsSection({
       },
     },
   };
+
+  const isDark = document.documentElement.classList.contains('dark');
 
   return (
     <div className="space-y-6">
@@ -234,7 +307,7 @@ export function AnalyticsSection({
             Expense Breakdown
           </h3>
           <div className="h-56 sm:h-72">
-            <Pie data={expensePieData} options={document.documentElement.classList.contains('dark') ? darkChartOptions : chartOptions} />
+            <Pie data={expensePieData} options={isDark ? darkPieChartOptions : pieChartOptions} />
           </div>
         </div>
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-600">

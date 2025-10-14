@@ -125,6 +125,15 @@ export default function ClientRevenueApp() {
     });
   }, []);
 
+  // Reset state after clearing data
+  const handleDataCleared = useCallback(() => {
+    setClients([]);
+    setTransactions([]);
+    setApiClients([]);
+    setSelectedClient(null);
+    setIsClientDetailsOpen(false);
+  }, []);
+
   // Fetch data from API
   useEffect(() => {
     const fetchData = async () => {
@@ -338,20 +347,31 @@ export default function ClientRevenueApp() {
     return Math.max(Math.round(slope * nextMonthIndex + intercept), 0);
   }, [monthlyBookings, incomeTransactions]);
 
-  const clientDetails = useMemo<ClientDetail[]>(() => {
-    const byClient = incomeTransactions.reduce((acc, t) => {
-      if (!t.clientId) return acc;
-      acc[t.clientId] = (acc[t.clientId] || 0) + Number(t.amount);
-      return acc;
-    }, {} as Record<string, number>);
-    return monthClients.map((client) => ({
-      id: client.id,
-      name: client.name,
-      service: client.service,
-      amount: byClient[client.id] || 0,
-      date: client.date,
-    }));
-  }, [monthClients, incomeTransactions]);
+const clientDetails = useMemo<ClientDetail[]>(() => {
+  const byClient = incomeTransactions.reduce((acc, t) => {
+    if (!t.clientId) return acc;
+    acc[t.clientId] = (acc[t.clientId] || 0) + Number(t.amount);
+    return acc;
+  }, {} as Record<string, number>);
+
+  return monthClients.map((client) => ({
+    id: client.id,
+    name: client.name,
+    service: client.service,
+    amount: byClient[client.id] || 0,
+    date: client.date,
+    numberOfVisits: client.visitHistory.filter((v) => {
+      const d = new Date(v.date);
+      if (selectedMonth === "all") {
+        return d.getFullYear() === Number(selectedYear);
+      }
+      return (
+        d.getMonth() === Number(selectedMonth) &&
+        d.getFullYear() === Number(selectedYear)
+      );
+    }).length,
+  }));
+}, [monthClients, incomeTransactions, selectedMonth, selectedYear]);
 
   const recentTransactions = useMemo(() => {
     return [...monthTransactions]
@@ -921,6 +941,7 @@ export default function ClientRevenueApp() {
                 predictedBookings={predictedBookings}
                 isDarkMode={isDarkMode}
                 toggleDarkMode={toggleDarkMode}
+                onDataCleared={handleDataCleared}
               />
             </div>
           </main>

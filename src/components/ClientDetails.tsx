@@ -1,7 +1,7 @@
-import { X, Calendar, TrendingUp } from 'lucide-react';
-import { Client, Transaction } from '../types';
-import { AddEntryModal } from './AddEntryModal';
-import { useState, useEffect } from 'react';
+import { X, Calendar, TrendingUp } from "lucide-react";
+import { Client, Transaction } from "../types";
+import { AddEntryModal } from "./AddEntryModal";
+import { useState, useEffect } from "react";
 
 interface ClientDetailsProps {
   client: Client | null;
@@ -12,7 +12,14 @@ interface ClientDetailsProps {
   onAddEntry: (data: any) => void;
 }
 
-export function ClientDetails({ client, isOpen, onClose, transactions, allClients, onAddEntry }: ClientDetailsProps) {
+export function ClientDetails({
+  client,
+  isOpen,
+  onClose,
+  transactions,
+  allClients,
+  onAddEntry,
+}: ClientDetailsProps) {
   const [isAddEntryOpen, setIsAddEntryOpen] = useState(false);
 
   // Reset isAddEntryOpen when client changes or component unmounts
@@ -25,10 +32,10 @@ export function ClientDetails({ client, isOpen, onClose, transactions, allClient
   // Log render details
   useEffect(() => {
     if (client) {
-      console.log('ClientDetails rendered, client:', client, 'isOpen:', isOpen);
-      console.log('Footer should render with Add New Entry and Close buttons');
+      console.log("ClientDetails rendered, client:", client, "isOpen:", isOpen);
+      console.log("Footer should render with Add New Entry and Close buttons");
     } else {
-      console.log('ClientDetails not rendered: client is null');
+      console.log("ClientDetails not rendered: client is null");
     }
   }, [client, isOpen]);
 
@@ -37,11 +44,13 @@ export function ClientDetails({ client, isOpen, onClose, transactions, allClient
   }
 
   // Use visitHistory from client
-  const clientVisits = client.visitHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const clientVisits = client.visitHistory.sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
 
   // Use transactions for consistency with other components, filtered by clientId
   const clientTransactions = transactions
-    .filter(t => t.type === 'income' && t.clientId === client.id)
+    .filter((t) => t.type === "income" && t.clientId === client.id)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const numberOfVisits = clientVisits.length;
@@ -51,17 +60,25 @@ export function ClientDetails({ client, isOpen, onClose, transactions, allClient
 
   return (
     <>
-      <div className={`fixed inset-y-0 right-0 z-50 w-full lg:w-1/2 h-full bg-white dark:bg-gray-800 shadow-xl transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+      <div
+        className={`fixed inset-y-0 right-0 z-50 w-full lg:w-1/2 h-full bg-white dark:bg-gray-800 shadow-xl transform transition-transform duration-300 ease-in-out ${
+          isOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-600">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Client Details</h2>
-              <p className="text-gray-600 dark:text-gray-400">View complete client information</p>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                Client Details
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400">
+                View complete client information
+              </p>
             </div>
             <button
               onClick={() => {
-                console.log('Close button clicked');
+                console.log("Close button clicked");
                 onClose();
               }}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
@@ -80,47 +97,62 @@ export function ClientDetails({ client, isOpen, onClose, transactions, allClient
                 </span>
               </div>
               <div className="flex-1">
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{client.name}</h3>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                  {client.name}
+                </h3>
                 <div className="flex items-center space-x-4">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">Current Service: {client.service}</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    Current Service: {client.service}
+                  </span>
                 </div>
               </div>
             </div>
 
             {/* Statistics */}
-            <section className="space-y-4">
-              <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Statistics</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/50 rounded-lg text-center">
-                  <TrendingUp className="w-8 h-8 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-blue-900 dark:text-blue-300">£{totalSpent.toFixed(2)}</p>
-                  <p className="text-sm text-blue-600 dark:text-blue-400">Total Spent</p>
-                </div>
-                <div className="p-4 bg-purple-50 dark:bg-purple-900/50 rounded-lg text-center">
-                  <Calendar className="w-8 h-8 text-purple-600 dark:text-purple-400 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-purple-900 dark:text-purple-300">{numberOfVisits}</p>
-                  <p className="text-sm text-purple-600 dark:text-purple-400">Total Visits</p>
-                </div>
-                <div className="p-4 bg-green-50 dark:bg-green-900/50 rounded-lg text-center">
-                  <Calendar className="w-8 h-8 text-green-600 dark:text-green-400 mx-auto mb-2" />
-                  <p className="text-lg font-bold text-green-900 dark:text-green-300">
-                    {firstVisit ? new Date(firstVisit).toLocaleDateString('en-GB') : 'N/A'}
-                  </p>
-                  <p className="text-sm text-green-600 dark:text-green-400">First Visit</p>
-                </div>
-              </div>
-            </section>
+        <section className="space-y-4">
+  <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Statistics</h4>
+  <div className="flex flex-wrap md:grid md:grid-cols-3 gap-3 sm:gap-4">
+    <div className="p-3 sm:p-3 md:p-4 bg-blue-50 dark:bg-blue-900/50 rounded-lg text-center flex-1 min-w-[100px]">
+      <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-blue-600 dark:text-blue-400 mx-auto mb-1 sm:mb-2" />
+      <p className="text-lg sm:text-xl md:text-2xl font-bold text-blue-900 dark:text-blue-300">£{totalSpent.toFixed(2)}</p>
+      <p className="text-xs text-blue-600 dark:text-blue-400">Total Spent</p>
+    </div>
+
+    <div className="p-3 sm:p-3 md:p-4 bg-purple-50 dark:bg-purple-900/50 rounded-lg text-center flex-1 min-w-[100px]">
+      <Calendar className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-purple-600 dark:text-purple-400 mx-auto mb-1 sm:mb-2" />
+      <p className="text-lg sm:text-xl md:text-2xl font-bold text-purple-900 dark:text-purple-300">{numberOfVisits}</p>
+      <p className="text-xs text-purple-600 dark:text-purple-400">Total Visits</p>
+    </div>
+
+    <div className="p-3 sm:p-3 md:p-4 bg-green-50 dark:bg-green-900/50 rounded-lg text-center flex-1 min-w-[100px]">
+      <Calendar className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-green-600 dark:text-green-400 mx-auto mb-1 sm:mb-2" />
+      <p className="text-sm sm:text-md md:text-lg font-bold text-green-900 dark:text-green-300">
+        {firstVisit ? new Date(firstVisit).toLocaleDateString('en-GB') : 'N/A'}
+      </p>
+      <p className="text-xs text-green-600 dark:text-green-400">First Visit</p>
+    </div>
+  </div>
+</section>
+
 
             {/* Visit History */}
             <section className="space-y-4">
-              <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Visit History</h4>
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Visit History
+              </h4>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50 dark:bg-gray-700">
                     <tr>
-                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-900 dark:text-gray-200">Date</th>
-                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-900 dark:text-gray-200">Service</th>
-                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-900 dark:text-gray-200">Amount</th>
+                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-900 dark:text-gray-200">
+                        Date
+                      </th>
+                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-900 dark:text-gray-200">
+                        Service
+                      </th>
+                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-900 dark:text-gray-200">
+                        Amount
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
@@ -128,10 +160,10 @@ export function ClientDetails({ client, isOpen, onClose, transactions, allClient
                       clientVisits.map((visit) => (
                         <tr key={visit.id}>
                           <td className="px-4 py-2 text-sm dark:text-gray-300">
-                            {new Date(visit.date).toLocaleDateString('en-GB', { 
-                              day: 'numeric', 
-                              month: 'short', 
-                              year: 'numeric' 
+                            {new Date(visit.date).toLocaleDateString("en-GB", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
                             })}
                           </td>
                           <td className="px-4 py-2 text-sm font-medium text-gray-900 dark:text-gray-200">
@@ -146,7 +178,12 @@ export function ClientDetails({ client, isOpen, onClose, transactions, allClient
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={3} className="px-4 py-2 text-center text-sm text-gray-500 dark:text-gray-400">No visit history</td>
+                        <td
+                          colSpan={3}
+                          className="px-4 py-2 text-center text-sm text-gray-500 dark:text-gray-400"
+                        >
+                          No visit history
+                        </td>
                       </tr>
                     )}
                   </tbody>
@@ -160,7 +197,9 @@ export function ClientDetails({ client, isOpen, onClose, transactions, allClient
             <button
               data-testid="add-new-entry-button"
               onClick={() => {
-                console.log('Add New Entry button clicked, opening AddEntryModal with initialStep=income');
+                console.log(
+                  "Add New Entry button clicked, opening AddEntryModal with initialStep=income"
+                );
                 setIsAddEntryOpen(true);
               }}
               className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 dark:from-green-700 dark:to-green-800 text-white rounded-lg hover:from-green-700 hover:to-green-800 dark:hover:from-green-800 dark:hover:to-green-900 transition-all font-semibold text-base shadow-md min-w-[140px] min-h-[48px] visible"
@@ -170,7 +209,7 @@ export function ClientDetails({ client, isOpen, onClose, transactions, allClient
             <button
               data-testid="close-button"
               onClick={() => {
-                console.log('Close button clicked');
+                console.log("Close button clicked");
                 onClose();
               }}
               className="px-6 py-3 text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors font-semibold text-base min-w-[100px] min-h-[48px] visible"
@@ -185,11 +224,11 @@ export function ClientDetails({ client, isOpen, onClose, transactions, allClient
       <AddEntryModal
         isOpen={isAddEntryOpen}
         onClose={() => {
-          console.log('AddEntryModal closed');
+          console.log("AddEntryModal closed");
           setIsAddEntryOpen(false);
         }}
         onSubmit={(data) => {
-          console.log('AddEntryModal submitted:', data);
+          console.log("AddEntryModal submitted:", data);
           onAddEntry(data);
           setIsAddEntryOpen(false);
         }}

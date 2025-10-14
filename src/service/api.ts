@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const API_BASE_URL = 'https://tnlbeauty-api.onrender.com'; 
+// const API_BASE_URL = 'https://tnlbeauty-api.onrender.com'; 
+const API_BASE_URL = 'http://localhost:3000'; 
 
 // DTO Interfaces (similar to reference)
 export interface AddIncomeDto {
@@ -103,6 +104,16 @@ export interface Expense {
   __v: number;
 }
 
+export interface ResetDatabaseResponse {
+  success: boolean;
+  message: string;
+  data: {
+    clientsDeleted: number;
+    transactionsDeleted: number;
+    expensesDeleted: number;
+  };
+}
+
 // API Functions
 const api = {
   fetchAllData: async (month?: number, year?: number): Promise<AllDataResponse> => {
@@ -128,7 +139,10 @@ const api = {
     return response.data;
   },
 
-  resetDatabase(){}
+   resetDatabase: async (): Promise<ResetDatabaseResponse> => {
+    const response = await axios.delete(`${API_BASE_URL}/tracker/reset`);
+    return response.data;
+  },
 
 
 };

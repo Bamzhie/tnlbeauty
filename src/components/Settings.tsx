@@ -16,6 +16,7 @@ interface SettingsProps {
   predictedBookings: number;
   isDarkMode: boolean;
   toggleDarkMode: () => void;
+  onDataCleared: () => void;
 }
 
 export function Settings({
@@ -29,6 +30,7 @@ export function Settings({
   predictedBookings,
   isDarkMode,
   toggleDarkMode,
+  onDataCleared,
 }: SettingsProps) {
   const [isClearDataModalOpen, setIsClearDataModalOpen] = useState(false);
 
@@ -41,6 +43,7 @@ export function Settings({
           color: isDarkMode ? '#fff' : '#000',
         },
       });
+      onDataCleared();
     } catch (error) {
       console.error('Error clearing data:', error);
       toast.error('Failed to clear data.', {
@@ -56,7 +59,9 @@ export function Settings({
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
-    
+      <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-6">
+        Settings
+      </h1>
       <div className="space-y-6">
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-600">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Preferences</h2>

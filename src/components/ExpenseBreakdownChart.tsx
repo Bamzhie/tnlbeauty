@@ -1,8 +1,7 @@
-import React, { useCallback } from "react";
-import { Tooltip, Cell, ResponsiveContainer, PieChart, Pie } from "recharts";
-
+import React, { useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EXPENSE_COLORS } from "../utils";
+import * as d3 from "d3";
 
 interface ExpenseBreakdownChartProps {
   data: Array<{ name: string; value: number }>;
@@ -11,27 +10,60 @@ interface ExpenseBreakdownChartProps {
 export const ExpenseBreakdownChart: React.FC<ExpenseBreakdownChartProps> = ({
   data,
 }) => {
-  const renderCustomLabel = useCallback((props: any) => {
-    const { cx, cy, midAngle, innerRadius, outerRadius, percent } = props;
-    const RADIAN = Math.PI / 180;
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-    const y = cy + radius * Math.sin(-midAngle * RADIAN);
-    return (
-      <text
-        x={x}
-        y={y}
-        fill="white"
-        textAnchor={x > cx ? "start" : "end"}
-        dominantBaseline="central"
-        fontSize="10"
-      >
-        {`${(percent * 100).toFixed(1)}%`}
-      </text>
-    );
-  }, []);
+  const svgRef = useRef<SVGSVGElement>(null);
 
-  const chartData = data as any[];
+  useEffect(() => {
+    if (!svgRef.current || !data.length) return;
+
+    const svg = d3.select(svgRef.current);
+    svg.selectAll("*").remove(); // Clear previous content
+
+    const width = svgRef.current.clientWidth;
+    const height = svgRef.current.clientHeight;
+    const radius = Math.min(width, height) / 2 - 20;
+
+    const g = svg
+      .append("g")
+      .attr("transform", `translate(${width / 2},${height / 2})`);
+
+    const pie = d3.pie<{ name: string; value: number }>()
+      .value(d => d.value)
+      .sort(null);
+
+    const arc = d3.arc<d3.PieArcDatum<{ name: string; value: number }>>()
+      .innerRadius(0)
+      .outerRadius(radius);
+
+    const arcs = g.selectAll(".arc")
+      .data(pie(data))
+      .enter()
+      .append("g")
+      .attr("class", "arc");
+
+    // Draw slices
+    arcs.append("path")
+      .attr("d", arc)
+      .attr("fill", d => EXPENSE_COLORS[d.data.name] || "#a1a1aa")
+      .attr("stroke", "none"); // No stroke at all
+
+    // Add percentage labels
+    arcs.append("text")
+      .attr("transform", d => {
+        const pos = arc.centroid(d);
+        return `translate(${pos[0]}, ${pos[1]})`;
+      })
+      .attr("text-anchor", "middle")
+      .attr("dominant-baseline", "middle")
+      .style("fill", "white")
+      .style("font-size", "12px")
+      .style("font-weight", "bold")
+      .text(d => {
+        const total = d3.sum(data, item => item.value);
+        const percent = ((d.data.value / total) * 100).toFixed(1);
+        return `${percent}%`;
+      });
+
+  }, [data]);
 
   return (
     <Card className="shadow-lg border-0">
@@ -41,47 +73,27 @@ export const ExpenseBreakdownChart: React.FC<ExpenseBreakdownChartProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-56 sm:h-72">
-          <div className="flex h-full items-center gap-4">
-            {/* Pie Chart Side */}
-            <div className="flex-1 h-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={chartData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    labelLine={false}
-                    label={renderCustomLabel as any}
-                    dataKey="value"
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={EXPENSE_COLORS[entry.name] || "#a1a1aa"}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            
-            {/* Legend Side - Narrow container to force vertical layout */}
-            <div className="w-24 flex-shrink-0">
-              <div className="flex flex-col gap-2">
-                {chartData.map((entry) => (
-                  <div key={entry.name} className="flex items-center gap-2">
-                    <span
-                      className="w-3 h-3 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: EXPENSE_COLORS[entry.name] || "#a1a1aa" }}
-                    ></span>
-                    <span className="text-xs text-gray-700 whitespace-nowrap">{entry.name}</span>
-                  </div>
-                ))}
+        <div className="flex flex-col items-center gap-4">
+          {/* D3 Pie Chart */}
+          <div className="w-full h-64">
+            <svg 
+              ref={svgRef} 
+              className="w-full h-full"
+              style={{ background: 'transparent' }}
+            />
+          </div>
+          
+          {/* Custom Legend */}
+          <div className="flex flex-wrap justify-center gap-4">
+            {data.map((entry) => (
+              <div key={entry.name} className="flex items-center gap-2">
+                <span
+                  className="w-3 h-3 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: EXPENSE_COLORS[entry.name] || "#a1a1aa" }}
+                ></span>
+                <span className="text-xs text-gray-700">{entry.name}</span>
               </div>
-            </div>
+            ))}
           </div>
         </div>
       </CardContent>

@@ -37,12 +37,12 @@ export function ClientListTable({ clients, show, onAddIncome, onClientClick }: C
   const downloadClientsCSV = () => {
     if (!filteredClients.length) return;
 
-    const headers = ['Name', 'Service', 'Amount', 'Date'];
+    const headers = ['Name', 'Service', 'Amount', 'Number of Visits'];
     const csvData = filteredClients.map(client => [
       client.name,
       client.service,
       `£${client.amount.toFixed(2)}`,
-      client.date ? new Date(client.date).toLocaleDateString('en-GB') : 'N/A'
+      client.numberOfVisits || 0
     ]);
 
     const csvContent = [
@@ -107,7 +107,7 @@ export function ClientListTable({ clients, show, onAddIncome, onClientClick }: C
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 dark:text-gray-200">Name</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 dark:text-gray-200">Service</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 dark:text-gray-200">Amount</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 dark:text-gray-200">Date</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 dark:text-gray-200">Visits</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
@@ -126,7 +126,7 @@ export function ClientListTable({ clients, show, onAddIncome, onClientClick }: C
                     <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-200">{c.service}</td>
                     <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-200">£{c.amount.toFixed(2)}</td>
                     <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-200">
-                      {c.date ? new Date(c.date).toLocaleDateString('en-GB') : 'N/A'}
+                      {c.numberOfVisits || 0}
                     </td>
                   </tr>
                 ))
@@ -152,7 +152,7 @@ export function ClientListTable({ clients, show, onAddIncome, onClientClick }: C
                 </div>
                 <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
                   <span>{c.service}</span>
-                  <span>{c.date ? new Date(c.date).toLocaleDateString('en-GB') : 'N/A'}</span>
+                  <span>{c.numberOfVisits || 0} visits</span>
                 </div>
               </div>
             ))
