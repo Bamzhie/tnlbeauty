@@ -32,10 +32,8 @@ export function ClientDetails({
   // Log render details
   useEffect(() => {
     if (client) {
-      console.log("ClientDetails rendered, client:", client, "isOpen:", isOpen);
-      console.log("Footer should render with Add New Entry and Close buttons");
+     
     } else {
-      console.log("ClientDetails not rendered: client is null");
     }
   }, [client, isOpen]);
 
@@ -78,7 +76,6 @@ export function ClientDetails({
             </div>
             <button
               onClick={() => {
-                console.log("Close button clicked");
                 onClose();
               }}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
@@ -197,9 +194,7 @@ export function ClientDetails({
             <button
               data-testid="add-new-entry-button"
               onClick={() => {
-                console.log(
-                  "Add New Entry button clicked, opening AddEntryModal with initialStep=income"
-                );
+               
                 setIsAddEntryOpen(true);
               }}
               className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 dark:from-green-700 dark:to-green-800 text-white rounded-lg hover:from-green-700 hover:to-green-800 dark:hover:from-green-800 dark:hover:to-green-900 transition-all font-semibold text-base shadow-md min-w-[140px] min-h-[48px] visible"
@@ -209,7 +204,6 @@ export function ClientDetails({
             <button
               data-testid="close-button"
               onClick={() => {
-                console.log("Close button clicked");
                 onClose();
               }}
               className="px-6 py-3 text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors font-semibold text-base min-w-[100px] min-h-[48px] visible"
@@ -224,11 +218,9 @@ export function ClientDetails({
       <AddEntryModal
         isOpen={isAddEntryOpen}
         onClose={() => {
-          console.log("AddEntryModal closed");
           setIsAddEntryOpen(false);
         }}
         onSubmit={(data) => {
-          console.log("AddEntryModal submitted:", data);
           onAddEntry(data);
           setIsAddEntryOpen(false);
         }}

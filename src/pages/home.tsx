@@ -176,13 +176,7 @@ export default function ClientRevenueApp() {
         );
       });
     });
-    console.log(
-      "monthClients:",
-      filteredClients.map((c) => ({
-        name: c.name,
-        visitHistory: c.visitHistory,
-      }))
-    );
+   
     return filteredClients;
   }, [clients, selectedMonth, selectedYear]);
 
@@ -257,7 +251,6 @@ export default function ClientRevenueApp() {
         }
       });
     });
-    console.log("clientVisits:", visits);
     return visits;
   }, [monthClients, selectedMonth]);
 
@@ -266,11 +259,7 @@ export default function ClientRevenueApp() {
     const returningClients = Object.values(clientVisits).filter(
       (visits) => visits.length > 1
     ).length;
-    console.log("retentionRate Debug:", {
-      totalClients,
-      returningClients,
-      clientVisits,
-    });
+  
     return totalClients > 0
       ? ((returningClients / totalClients) * 100).toFixed(1)
       : "0.0";

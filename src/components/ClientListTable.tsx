@@ -27,7 +27,6 @@ export function ClientListTable({ clients, show, onAddIncome, onClientClick }: C
   const currentClients = filteredClients.slice(indexOfFirstClient, indexOfLastClient);
 
   const handleClientClick = (client: ClientDetail) => {
-    console.log('Client clicked:', client);
     if (onClientClick) {
       onClientClick(client);
     }
