@@ -3,13 +3,13 @@ import {
   LayoutDashboard, 
   Package, 
   Users, 
-  BarChart2, 
+  Settings as SettingsIcon,
   Plus
 } from 'lucide-react';
 
 interface SidebarProps {
-  currentPage: 'overview' | 'clients' | 'expenses' | 'analytics';
-  onPageChange: (page: 'overview' | 'clients' | 'expenses' | 'analytics') => void;
+  currentPage: 'overview' | 'clients' | 'expenses' | 'settings';
+  onPageChange: (page: 'overview' | 'clients' | 'expenses' | 'settings') => void;
   onAddClick: () => void;
 }
 
@@ -18,7 +18,7 @@ export function Sidebar({ currentPage, onPageChange, onAddClick }: SidebarProps)
     { name: 'Overview', id: 'overview', icon: LayoutDashboard },
     { name: 'Clients', id: 'clients', icon: Users },
     { name: 'Expenses', id: 'expenses', icon: Package },
-    { name: 'Analytics', id: 'analytics', icon: BarChart2 },
+    { name: 'Settings', id: 'settings', icon: SettingsIcon },
   ];
 
   return (
@@ -93,17 +93,17 @@ export function Sidebar({ currentPage, onPageChange, onAddClick }: SidebarProps)
               <span className="text-xs font-medium">Expenses</span>
             </button>
 
-            {/* Analytics */}
+            {/* Settings */}
             <button
-              onClick={() => onPageChange('analytics')}
+              onClick={() => onPageChange('settings')}
               className={`flex flex-col items-center justify-center gap-1 transition-colors ${
-                currentPage === 'analytics'
+                currentPage === 'settings'
                   ? 'text-blue-600 dark:text-blue-400'
                   : 'text-gray-600 dark:text-gray-300'
               }`}
             >
-              <BarChart2 className="w-5 h-5" />
-              <span className="text-xs font-medium">Analytics</span>
+              <SettingsIcon className="w-5 h-5" />
+              <span className="text-xs font-medium">Settings</span>
             </button>
           </div>
         </div>
@@ -129,7 +129,7 @@ export function Sidebar({ currentPage, onPageChange, onAddClick }: SidebarProps)
                     }`}
                   >
                     <item.icon className="w-5 h-5" />
-                    <span className="font-medium"> {item.name}</span>
+                    <span className="font-medium">{item.name}</span>
                   </button>
                 </li>
               );

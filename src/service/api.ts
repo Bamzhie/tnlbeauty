@@ -128,6 +128,8 @@ const api = {
     return response.data;
   },
 
+  resetDatabase(){}
+
 
 };
 

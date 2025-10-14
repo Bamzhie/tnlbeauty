@@ -16,14 +16,14 @@ import api, {
 } from "../service/api";
 import { MonthFilter } from "../components/MonthFilter";
 import { ClientListTable } from "../components/ClientListTable";
-import { AnalyticsSection } from "../components/AnalyticsSection";
 import { AddEntryModal } from "../components/AddEntryModal";
 import { Sidebar } from "../components/Sidebar";
 import { ClientDetails } from "../components/ClientDetails";
 import { Toaster } from "react-hot-toast";
 import { IncomeExpenseChart } from "../components/IncomeExpenseChart";
 import { ExpenseListTable } from "../components/ExpenseListTable";
-import { Plus, Download, Moon, Sun } from "lucide-react";
+import { Settings } from "../components/Settings";
+import { Plus, Download } from "lucide-react";
 
 // Simple linear regression function (used for other metrics)
 const simpleRegression = (
@@ -83,7 +83,7 @@ export default function ClientRevenueApp() {
     new Date().getFullYear()
   );
   const [currentPage, setCurrentPage] = useState<
-    "overview" | "clients" | "expenses" | "analytics"
+    "overview" | "clients" | "expenses" | "settings"
   >("overview");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalStep, setModalStep] = useState<"choose" | "income" | "expense">(
@@ -586,21 +586,6 @@ export default function ClientRevenueApp() {
                       onYearChange={setSelectedYear}
                       hideLabels={true}
                     />
-                    <button
-                      onClick={toggleDarkMode}
-                      className="p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                      aria-label={
-                        isDarkMode
-                          ? "Switch to light mode"
-                          : "Switch to dark mode"
-                      }
-                    >
-                      {isDarkMode ? (
-                        <Sun className="w-5 h-5 text-yellow-500" />
-                      ) : (
-                        <Moon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-                      )}
-                    </button>
                   </div>
                 </div>
               </header>
@@ -757,7 +742,7 @@ export default function ClientRevenueApp() {
                   </button>
                   <button
                     className="p-2 sm:p-4 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg border border-green-200 dark:border-green-600 transition-colors"
-                    onClick={() => setCurrentPage("analytics")}
+                    onClick={() => setCurrentPage("settings")}
                     disabled={isSubmitting}
                   >
                     <div className="text-center">
@@ -839,61 +824,50 @@ export default function ClientRevenueApp() {
             </div>
           </main>
         );
-    case "clients":
-  return (
-    <main className="flex-1 bg-gray-50 dark:bg-gray-900 min-h-screen lg:ml-56">
-      {isClientDetailsOpen && (
-        <div
-          className="fixed inset-0 bg-black/30 dark:bg-black/50 z-40 transition-opacity duration-300 ease-in-out"
-          onClick={handleCloseClientDetails}
-        />
-      )}
-      <div className="pt-4 pb-20 lg:pb-8 lg:pt-8 p-4 sm:p-6 lg:p-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-            Clients
-          </h1>
-          <div className="flex items-center gap-4">
-            <MonthFilter
-              selectedMonth={selectedMonth}
-              selectedYear={selectedYear}
-              onMonthChange={setSelectedMonth}
-              onYearChange={setSelectedYear}
-              hideLabels={true}
-            />
-            <button
-              onClick={toggleDarkMode}
-              className="p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
-            >
-              {isDarkMode ? (
-                <Sun className="w-5 h-5 text-yellow-500" />
-              ) : (
-                <Moon className="w-5 h-5 text-gray-600" />
-              )}
-            </button>
-          </div>
-        </div>
-        <ClientListTable
-          clients={clientDetails}
-          show={true}
-          onAddIncome={handleAddIncome}
-          onClientClick={handleClientClick}
-        />
-      </div>
-      {isClientDetailsOpen && (
-        <ClientDetails
-          client={selectedClient}
-          isOpen={isClientDetailsOpen}
-          onClose={handleCloseClientDetails}
-          transactions={monthTransactions}
-          allClients={monthClients}
-          onAddEntry={handleAddEntry}
-        />
-      )}
-    </main>
-  );
-        case "expenses":
+      case "clients":
+        return (
+          <main className="flex-1 bg-gray-50 dark:bg-gray-900 min-h-screen lg:ml-56">
+            {isClientDetailsOpen && (
+              <div
+                className="fixed inset-0 bg-black/30 dark:bg-black/50 z-40 transition-opacity duration-300 ease-in-out"
+                onClick={handleCloseClientDetails}
+              />
+            )}
+            <div className="pt-4 pb-20 lg:pb-8 lg:pt-8 p-4 sm:p-6 lg:p-8">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+                  Clients
+                </h1>
+                <div className="flex items-center gap-4">
+                  <MonthFilter
+                    selectedMonth={selectedMonth}
+                    selectedYear={selectedYear}
+                    onMonthChange={setSelectedMonth}
+                    onYearChange={setSelectedYear}
+                    hideLabels={true}
+                  />
+                </div>
+              </div>
+              <ClientListTable
+                clients={clientDetails}
+                show={true}
+                onAddIncome={handleAddIncome}
+                onClientClick={handleClientClick}
+              />
+            </div>
+            {isClientDetailsOpen && (
+              <ClientDetails
+                client={selectedClient}
+                isOpen={isClientDetailsOpen}
+                onClose={handleCloseClientDetails}
+                transactions={monthTransactions}
+                allClients={monthClients}
+                onAddEntry={handleAddEntry}
+              />
+            )}
+          </main>
+        );
+      case "expenses":
         return (
           <main className="flex-1 bg-gray-50 dark:bg-gray-900 min-h-screen lg:ml-56">
             <div className="pt-4 pb-20 lg:pb-8 lg:pt-8 p-4 sm:p-6 lg:p-8">
@@ -909,17 +883,6 @@ export default function ClientRevenueApp() {
                     onYearChange={setSelectedYear}
                     hideLabels={true}
                   />
-                  <button
-                    onClick={toggleDarkMode}
-                    className="p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
-                  >
-                    {isDarkMode ? (
-                      <Sun className="w-5 h-5 text-yellow-500" />
-                    ) : (
-                      <Moon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-                    )}
-                  </button>
                 </div>
               </div>
               <ExpenseListTable
@@ -929,13 +892,13 @@ export default function ClientRevenueApp() {
             </div>
           </main>
         );
-      case "analytics":
+      case "settings":
         return (
           <main className="flex-1 bg-gray-50 dark:bg-gray-900 min-h-screen lg:ml-56">
             <div className="pt-4 pb-20 lg:pb-8 lg:pt-8 p-4 sm:p-6 lg:p-8">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-                  Analytics
+                  Settings
                 </h1>
                 <div className="flex items-center gap-4">
                   <MonthFilter
@@ -945,21 +908,9 @@ export default function ClientRevenueApp() {
                     onYearChange={setSelectedYear}
                     hideLabels={true}
                   />
-                  <button
-                    onClick={toggleDarkMode}
-                    className="p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
-                  >
-                    {isDarkMode ? (
-                      <Sun className="w-5 h-5 text-yellow-500" />
-                    ) : (
-                      <Moon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-                    )}
-                  </button>
                 </div>
               </div>
-              <AnalyticsSection
-                show={true}
+              <Settings
                 totalIncome={totalIncome}
                 totalExpenses={totalExpenses}
                 pieData={pieData}
@@ -968,6 +919,8 @@ export default function ClientRevenueApp() {
                 averageDays={averageDays}
                 forecastedIncome={forecastedIncome}
                 predictedBookings={predictedBookings}
+                isDarkMode={isDarkMode}
+                toggleDarkMode={toggleDarkMode}
               />
             </div>
           </main>
