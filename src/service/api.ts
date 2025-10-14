@@ -1,7 +1,6 @@
 import axios from "axios";
 
-// const API_BASE_URL = 'https://tnlbeauty-api.onrender.com'; 
-const API_BASE_URL = 'http://localhost:3000'; 
+const API_BASE_URL = 'https://tnlbeauty-api.onrender.com'; 
 
 // DTO Interfaces (similar to reference)
 export interface AddIncomeDto {
