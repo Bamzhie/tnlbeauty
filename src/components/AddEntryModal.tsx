@@ -190,10 +190,11 @@ export const AddEntryModal: React.FC<AddEntryModalProps> = ({ isOpen, onClose, o
                   disabled={isSubmitting}
                 >
                   <option value="">Select service</option>
-                  <option value="Gel nails">Gel nails</option>
-                  <option value="Acrylic nails">Acrylic nails</option>
-                  <option value="Waxing">Waxing</option>
-                  <option value="Hair">Hair</option>
+                  <option value="Gel-x">Gel-x</option>
+                  <option value="Acrylic">Acrylic</option>
+                  <option value="Biab">Biab</option>
+                  <option value="Pedicure">Pedicure</option>
+                  <option value="Gel Manicure">Gel Manicure</option>
                   <option value="Other">Other</option>
                 </select>
               </div>
