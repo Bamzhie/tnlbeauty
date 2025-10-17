@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Search, ChevronLeft, ChevronRight, Plus, Download } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight, Plus, Download, Edit2, Trash2 } from 'lucide-react'
 import { ClientDetail } from '../types'
 
 interface ClientListTableProps {
@@ -7,9 +7,18 @@ interface ClientListTableProps {
   show: boolean
   onAddIncome?: () => void
   onClientClick?: (client: ClientDetail) => void
+  onEditClient?: (client: ClientDetail) => void
+  onDeleteClient?: (client: ClientDetail) => void
 }
 
-export function ClientListTable({ clients, show, onAddIncome, onClientClick }: ClientListTableProps) {
+export function ClientListTable({ 
+  clients, 
+  show, 
+  onAddIncome, 
+  onClientClick, 
+  onEditClient,
+  onDeleteClient 
+}: ClientListTableProps) {
   if (!show) return null;
 
   const [query, setQuery] = useState('');
@@ -26,7 +35,11 @@ export function ClientListTable({ clients, show, onAddIncome, onClientClick }: C
   const indexOfFirstClient = indexOfLastClient - clientsPerPage;
   const currentClients = filteredClients.slice(indexOfFirstClient, indexOfLastClient);
 
-  const handleClientClick = (client: ClientDetail) => {
+  const handleClientClick = (client: ClientDetail, e: React.MouseEvent) => {
+    // Don't open details if clicking action buttons
+    if ((e.target as HTMLElement).closest('.action-button')) {
+      return;
+    }
     if (onClientClick) {
       onClientClick(client);
     }
@@ -107,25 +120,50 @@ export function ClientListTable({ clients, show, onAddIncome, onClientClick }: C
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 dark:text-gray-200">Service</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 dark:text-gray-200">Amount</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 dark:text-gray-200">Visits</th>
+                <th className="px-4 py-3 text-center text-sm font-medium text-gray-900 dark:text-gray-200">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
               {currentClients.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="p-8 text-center text-gray-500 dark:text-gray-400">No clients found</td>
+                  <td colSpan={5} className="p-8 text-center text-gray-500 dark:text-gray-400">No clients found</td>
                 </tr>
               ) : (
                 currentClients.map((c: ClientDetail) => (
                   <tr 
                     key={c.id} 
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
-                    onClick={() => handleClientClick(c)}
+                    onClick={(e) => handleClientClick(c, e)}
                   >
                     <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{c.name}</td>
                     <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-200">{c.service}</td>
                     <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-200">£{c.amount.toFixed(2)}</td>
                     <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-200">
                       {c.numberOfVisits || 0}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditClient && onEditClient(c);
+                          }}
+                          className="action-button p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/50 rounded-lg transition-colors"
+                          title="Edit client name"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteClient && onDeleteClient(c);
+                          }}
+                          className="action-button p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/50 rounded-lg transition-colors"
+                          title="Delete client"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -142,16 +180,40 @@ export function ClientListTable({ clients, show, onAddIncome, onClientClick }: C
             currentClients.map((c: ClientDetail) => (
               <div 
                 key={c.id} 
-                className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
-                onClick={() => handleClientClick(c)}
+                className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700"
+                onClick={(e) => handleClientClick(c, e)}
               >
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="font-medium text-gray-900 dark:text-white">{c.name}</h3>
-                  <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">£{c.amount.toFixed(2)}</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEditClient && onEditClient(c);
+                      }}
+                      className="action-button p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/50 rounded-lg transition-colors"
+                      title="Edit client name"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteClient && onDeleteClient(c);
+                      }}
+                      className="action-button p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/50 rounded-lg transition-colors"
+                      title="Delete client"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
                 <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
                   <span>{c.service}</span>
-                  <span>{c.numberOfVisits || 0} visits</span>
+                  <span className="font-semibold text-blue-600 dark:text-blue-400">£{c.amount.toFixed(2)}</span>
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  {c.numberOfVisits || 0} visits
                 </div>
               </div>
             ))

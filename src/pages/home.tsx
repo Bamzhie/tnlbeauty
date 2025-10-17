@@ -17,9 +17,11 @@ import api, {
 import { MonthFilter } from "../components/MonthFilter";
 import { ClientListTable } from "../components/ClientListTable";
 import { AddEntryModal } from "../components/AddEntryModal";
+import { EditClientModal } from "../components/EditClientModal";
+import { DeleteConfirmModal } from "../components/DeleteModalConfirm";
 import { Sidebar } from "../components/Sidebar";
 import { ClientDetails } from "../components/ClientDetails";
-import { Toaster } from "react-hot-toast";
+import { Toaster, toast } from "react-hot-toast";
 import { IncomeExpenseChart } from "../components/IncomeExpenseChart";
 import { ExpenseListTable } from "../components/ExpenseListTable";
 import { Settings } from "../components/Settings";
@@ -57,6 +59,7 @@ const adaptApiClientToClient = (apiClient: ApiClient): Client => ({
   date: apiClient.date,
   visitHistory: apiClient.visitHistory.map((visit) => ({
     id: visit._id,
+    visitId: visit.visitId,
     date: visit.date,
     service: visit.service,
     amount: visit.amount,
@@ -95,6 +98,10 @@ export default function ClientRevenueApp() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isEditClientOpen, setIsEditClientOpen] = useState(false);
+  const [clientToEdit, setClientToEdit] = useState<ClientDetail | null>(null);
+  const [isDeleteClientOpen, setIsDeleteClientOpen] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<ClientDetail | null>(null);
 
   // Initialize dark mode based on localStorage or system preference
   useEffect(() => {
@@ -337,31 +344,31 @@ export default function ClientRevenueApp() {
     return Math.max(Math.round(slope * nextMonthIndex + intercept), 0);
   }, [monthlyBookings, incomeTransactions]);
 
-const clientDetails = useMemo<ClientDetail[]>(() => {
-  const byClient = incomeTransactions.reduce((acc, t) => {
-    if (!t.clientId) return acc;
-    acc[t.clientId] = (acc[t.clientId] || 0) + Number(t.amount);
-    return acc;
-  }, {} as Record<string, number>);
+  const clientDetails = useMemo<ClientDetail[]>(() => {
+    const byClient = incomeTransactions.reduce((acc, t) => {
+      if (!t.clientId) return acc;
+      acc[t.clientId] = (acc[t.clientId] || 0) + Number(t.amount);
+      return acc;
+    }, {} as Record<string, number>);
 
-  return monthClients.map((client) => ({
-    id: client.id,
-    name: client.name,
-    service: client.service,
-    amount: byClient[client.id] || 0,
-    date: client.date,
-    numberOfVisits: client.visitHistory.filter((v) => {
-      const d = new Date(v.date);
-      if (selectedMonth === "all") {
-        return d.getFullYear() === Number(selectedYear);
-      }
-      return (
-        d.getMonth() === Number(selectedMonth) &&
-        d.getFullYear() === Number(selectedYear)
-      );
-    }).length,
-  }));
-}, [monthClients, incomeTransactions, selectedMonth, selectedYear]);
+    return monthClients.map((client) => ({
+      id: client.id,
+      name: client.name,
+      service: client.service,
+      amount: byClient[client.id] || 0,
+      date: client.date,
+      numberOfVisits: client.visitHistory.filter((v) => {
+        const d = new Date(v.date);
+        if (selectedMonth === "all") {
+          return d.getFullYear() === Number(selectedYear);
+        }
+        return (
+          d.getMonth() === Number(selectedMonth) &&
+          d.getFullYear() === Number(selectedYear)
+        );
+      }).length,
+    }));
+  }, [monthClients, incomeTransactions, selectedMonth, selectedYear]);
 
   const recentTransactions = useMemo(() => {
     return [...monthTransactions]
@@ -401,12 +408,12 @@ const clientDetails = useMemo<ClientDetail[]>(() => {
           setTransactions((prev) => [adaptedTransaction, ...prev]);
           setApiClients((prev) => [...prev, response.client]);
         } else if (data.type === "expense") {
-          const incomeDto: AddExpenseDto = {
+          const expenseDto: AddExpenseDto = {
             category: data.category,
             amount: Number(data.amount),
             date: data.date,
           };
-          const response = await api.addExpense(incomeDto);
+          const response = await api.addExpense(expenseDto);
           const adaptedTransaction = adaptApiTransactionToTransaction(
             response.transaction
           );
@@ -455,7 +462,7 @@ const clientDetails = useMemo<ClientDetail[]>(() => {
                 c._id === response.client._id ? response.client : c
               )
             );
-            setIsClientDetailsOpen(false);
+            setSelectedClient(adaptedClient);
           }
         }
       } catch (error) {
@@ -494,6 +501,107 @@ const clientDetails = useMemo<ClientDetail[]>(() => {
     setIsClientDetailsOpen(false);
     setSelectedClient(null);
   }, []);
+
+  const handleEditClient = useCallback((client: ClientDetail) => {
+    setClientToEdit(client);
+    setIsEditClientOpen(true);
+  }, []);
+
+  const handleEditClientSubmit = useCallback(async (newName: string) => {
+    if (!clientToEdit) return;
+
+    try {
+      const response = await api.updateClient(clientToEdit.id, { name: newName });
+      
+      const adaptedClient = adaptApiClientToClient(response.client);
+      
+      setClients((prev) =>
+        prev.map((c) => (c.id === adaptedClient.id ? adaptedClient : c))
+      );
+      
+      setApiClients((prev) =>
+        prev.map((c) => (c._id === response.client._id ? response.client : c))
+      );
+
+      if (selectedClient && selectedClient.id === adaptedClient.id) {
+        setSelectedClient(adaptedClient);
+      }
+      
+      setIsEditClientOpen(false);
+      setClientToEdit(null);
+    } catch (error) {
+      console.error("Error updating client:", error);
+      throw error;
+    }
+  }, [clientToEdit, selectedClient]);
+
+  const handleDeleteClient = useCallback((client: ClientDetail) => {
+    setClientToDelete(client);
+    setIsDeleteClientOpen(true);
+  }, []);
+
+  const handleDeleteClientConfirm = useCallback(async () => {
+    if (!clientToDelete) return;
+
+    try {
+      await api.deleteClient(clientToDelete.id);
+      
+      setClients((prev) => prev.filter((c) => c.id !== clientToDelete.id));
+      setApiClients((prev) => prev.filter((c) => c._id !== clientToDelete.id));
+      setTransactions((prev) => 
+        prev.filter((t) => t.clientId !== clientToDelete.id)
+      );
+
+      if (selectedClient && selectedClient.id === clientToDelete.id) {
+        setIsClientDetailsOpen(false);
+        setSelectedClient(null);
+      }
+      
+      toast.success('Client deleted successfully');
+      setIsDeleteClientOpen(false);
+      setClientToDelete(null);
+    } catch (error) {
+      console.error("Error deleting client:", error);
+      toast.error('Failed to delete client');
+      throw error;
+    }
+  }, [clientToDelete, selectedClient]);
+
+  const handleEditVisit = useCallback(async (visitId: string, service: string, amount: number) => {
+    if (!selectedClient) return;
+
+    try {
+      const response = await api.updateClient(selectedClient.id, {
+        visitId,
+        newService: service,
+        newAmount: amount,
+      });
+
+      const adaptedClient = adaptApiClientToClient(response.client);
+      
+      setClients((prev) =>
+        prev.map((c) => (c.id === adaptedClient.id ? adaptedClient : c))
+      );
+      
+      setApiClients((prev) =>
+        prev.map((c) => (c._id === response.client._id ? response.client : c))
+      );
+
+      setSelectedClient(adaptedClient);
+
+      if (response.updatedTransaction) {
+        const adaptedTransaction = adaptApiTransactionToTransaction(
+          response.updatedTransaction
+        );
+        setTransactions((prev) =>
+          prev.map((t) => (t.id === adaptedTransaction.id ? adaptedTransaction : t))
+        );
+      }
+    } catch (error) {
+      console.error("Error editing visit:", error);
+      throw error;
+    }
+  }, [selectedClient]);
 
   // report download
   const downloadDashboardReport = () => {
@@ -863,6 +971,8 @@ const clientDetails = useMemo<ClientDetail[]>(() => {
                 show={true}
                 onAddIncome={handleAddIncome}
                 onClientClick={handleClientClick}
+                onEditClient={handleEditClient}
+                onDeleteClient={handleDeleteClient}
               />
             </div>
             {isClientDetailsOpen && (
@@ -873,6 +983,7 @@ const clientDetails = useMemo<ClientDetail[]>(() => {
                 transactions={monthTransactions}
                 allClients={monthClients}
                 onAddEntry={handleAddEntry}
+                onEditVisit={handleEditVisit}
               />
             )}
           </main>
@@ -902,33 +1013,33 @@ const clientDetails = useMemo<ClientDetail[]>(() => {
             </div>
           </main>
         );
-     case "settings":
-  return (
-    <main className="flex-1 bg-gray-50 dark:bg-gray-900 min-h-screen lg:ml-56">
-      <div className="pt-4 pb-20 lg:pb-8 lg:pt-8 p-4 sm:p-6 lg:p-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-            Settings
-          </h1>
-          <div className="flex items-center gap-4">
-            <MonthFilter
-              selectedMonth={selectedMonth}
-              selectedYear={selectedYear}
-              onMonthChange={setSelectedMonth}
-              onYearChange={setSelectedYear}
-              hideLabels={true}
-            />
-          </div>
-        </div>
-        <Settings
-          isDarkMode={isDarkMode}
-          toggleDarkMode={toggleDarkMode}
-          onDataCleared={handleDataCleared}
-        />
-      </div>
-    </main>
-  );
-        case "analytics":
+      case "settings":
+        return (
+          <main className="flex-1 bg-gray-50 dark:bg-gray-900 min-h-screen lg:ml-56">
+            <div className="pt-4 pb-20 lg:pb-8 lg:pt-8 p-4 sm:p-6 lg:p-8">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+                  Settings
+                </h1>
+                <div className="flex items-center gap-4">
+                  <MonthFilter
+                    selectedMonth={selectedMonth}
+                    selectedYear={selectedYear}
+                    onMonthChange={setSelectedMonth}
+                    onYearChange={setSelectedYear}
+                    hideLabels={true}
+                  />
+                </div>
+              </div>
+              <Settings
+                isDarkMode={isDarkMode}
+                toggleDarkMode={toggleDarkMode}
+                onDataCleared={handleDataCleared}
+              />
+            </div>
+          </main>
+        );
+      case "analytics":
         return (
           <main className="flex-1 bg-gray-50 dark:bg-gray-900 min-h-screen lg:ml-56">
             <div className="pt-4 pb-20 lg:pb-8 lg:pt-8 p-4 sm:p-6 lg:p-8">
@@ -960,7 +1071,7 @@ const clientDetails = useMemo<ClientDetail[]>(() => {
             </div>
           </main>
         );
-        default:
+      default:
         return null;
     }
   };
@@ -986,6 +1097,24 @@ const clientDetails = useMemo<ClientDetail[]>(() => {
         onSubmit={handleModalSubmit}
         initialStep={modalStep}
         initialClientName={selectedClient?.name || ""}
+      />
+      <EditClientModal
+        isOpen={isEditClientOpen}
+        onClose={() => {
+          setIsEditClientOpen(false);
+          setClientToEdit(null);
+        }}
+        onSubmit={handleEditClientSubmit}
+        clientName={clientToEdit?.name || ""}
+      />
+      <DeleteConfirmModal
+        isOpen={isDeleteClientOpen}
+        onClose={() => {
+          setIsDeleteClientOpen(false);
+          setClientToDelete(null);
+        }}
+        onConfirm={handleDeleteClientConfirm}
+        clientName={clientToDelete?.name || ""}
       />
       <Toaster position="top-right" />
     </div>

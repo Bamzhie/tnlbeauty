@@ -1,6 +1,7 @@
-import { X, Calendar, TrendingUp } from "lucide-react";
+import { X, Calendar, TrendingUp, Edit2 } from "lucide-react";
 import { Client, Transaction } from "../types";
 import { AddEntryModal } from "./AddEntryModal";
+import { EditVisitModal } from "./EditVisitModal";
 import { useState, useEffect } from "react";
 
 interface ClientDetailsProps {
@@ -10,6 +11,7 @@ interface ClientDetailsProps {
   transactions: Transaction[];
   allClients: Client[];
   onAddEntry: (data: any) => void;
+  onEditVisit: (visitId: string, service: string, amount: number) => Promise<void>;
 }
 
 export function ClientDetails({
@@ -19,26 +21,23 @@ export function ClientDetails({
   transactions,
   allClients,
   onAddEntry,
+  onEditVisit,
 }: ClientDetailsProps) {
   const [isAddEntryOpen, setIsAddEntryOpen] = useState(false);
+  const [isEditVisitOpen, setIsEditVisitOpen] = useState(false);
+  const [selectedVisit, setSelectedVisit] = useState<any>(null);
 
-  // Reset isAddEntryOpen when client changes or component unmounts
+  // Reset modals when client changes or component unmounts
   useEffect(() => {
     return () => {
       setIsAddEntryOpen(false);
+      setIsEditVisitOpen(false);
+      setSelectedVisit(null);
     };
   }, [client]);
 
-  // Log render details
-  useEffect(() => {
-    if (client) {
-     
-    } else {
-    }
-  }, [client, isOpen]);
-
   if (!client) {
-    return null; // Render nothing but still call all hooks
+    return null;
   }
 
   // Use visitHistory from client
@@ -46,15 +45,20 @@ export function ClientDetails({
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
-  // Use transactions for consistency with other components, filtered by clientId
-  const clientTransactions = transactions
-    .filter((t) => t.type === "income" && t.clientId === client.id)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
   const numberOfVisits = clientVisits.length;
   const firstVisit = clientVisits[clientVisits.length - 1]?.date;
-  const lastVisit = clientVisits[0]?.date;
   const totalSpent = clientVisits.reduce((sum, visit) => sum + visit.amount, 0);
+
+  const handleEditVisit = (visit: any) => {
+    setSelectedVisit(visit);
+    setIsEditVisitOpen(true);
+  };
+
+  const handleEditVisitSubmit = async (visitId: string, service: string, amount: number) => {
+    await onEditVisit(visitId, service, amount);
+    setIsEditVisitOpen(false);
+    setSelectedVisit(null);
+  };
 
   return (
     <>
@@ -106,31 +110,30 @@ export function ClientDetails({
             </div>
 
             {/* Statistics */}
-        <section className="space-y-4">
-  <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Statistics</h4>
-  <div className="flex flex-wrap md:grid md:grid-cols-3 gap-3 sm:gap-4">
-    <div className="p-3 sm:p-3 md:p-4 bg-blue-50 dark:bg-blue-900/50 rounded-lg text-center flex-1 min-w-[100px]">
-      <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-blue-600 dark:text-blue-400 mx-auto mb-1 sm:mb-2" />
-      <p className="text-lg sm:text-xl md:text-2xl font-bold text-blue-900 dark:text-blue-300">£{totalSpent.toFixed(2)}</p>
-      <p className="text-xs text-blue-600 dark:text-blue-400">Total Spent</p>
-    </div>
+            <section className="space-y-4">
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Statistics</h4>
+              <div className="flex flex-wrap md:grid md:grid-cols-3 gap-3 sm:gap-4">
+                <div className="p-3 sm:p-3 md:p-4 bg-blue-50 dark:bg-blue-900/50 rounded-lg text-center flex-1 min-w-[100px]">
+                  <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-blue-600 dark:text-blue-400 mx-auto mb-1 sm:mb-2" />
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-blue-900 dark:text-blue-300">£{totalSpent.toFixed(2)}</p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400">Total Spent</p>
+                </div>
 
-    <div className="p-3 sm:p-3 md:p-4 bg-purple-50 dark:bg-purple-900/50 rounded-lg text-center flex-1 min-w-[100px]">
-      <Calendar className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-purple-600 dark:text-purple-400 mx-auto mb-1 sm:mb-2" />
-      <p className="text-lg sm:text-xl md:text-2xl font-bold text-purple-900 dark:text-purple-300">{numberOfVisits}</p>
-      <p className="text-xs text-purple-600 dark:text-purple-400">Total Visits</p>
-    </div>
+                <div className="p-3 sm:p-3 md:p-4 bg-purple-50 dark:bg-purple-900/50 rounded-lg text-center flex-1 min-w-[100px]">
+                  <Calendar className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-purple-600 dark:text-purple-400 mx-auto mb-1 sm:mb-2" />
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-purple-900 dark:text-purple-300">{numberOfVisits}</p>
+                  <p className="text-xs text-purple-600 dark:text-purple-400">Total Visits</p>
+                </div>
 
-    <div className="p-3 sm:p-3 md:p-4 bg-green-50 dark:bg-green-900/50 rounded-lg text-center flex-1 min-w-[100px]">
-      <Calendar className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-green-600 dark:text-green-400 mx-auto mb-1 sm:mb-2" />
-      <p className="text-sm sm:text-md md:text-lg font-bold text-green-900 dark:text-green-300">
-        {firstVisit ? new Date(firstVisit).toLocaleDateString('en-GB') : 'N/A'}
-      </p>
-      <p className="text-xs text-green-600 dark:text-green-400">First Visit</p>
-    </div>
-  </div>
-</section>
-
+                <div className="p-3 sm:p-3 md:p-4 bg-green-50 dark:bg-green-900/50 rounded-lg text-center flex-1 min-w-[100px]">
+                  <Calendar className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-green-600 dark:text-green-400 mx-auto mb-1 sm:mb-2" />
+                  <p className="text-sm sm:text-md md:text-lg font-bold text-green-900 dark:text-green-300">
+                    {firstVisit ? new Date(firstVisit).toLocaleDateString('en-GB') : 'N/A'}
+                  </p>
+                  <p className="text-xs text-green-600 dark:text-green-400">First Visit</p>
+                </div>
+              </div>
+            </section>
 
             {/* Visit History */}
             <section className="space-y-4">
@@ -149,6 +152,9 @@ export function ClientDetails({
                       </th>
                       <th className="px-4 py-2 text-left text-sm font-medium text-gray-900 dark:text-gray-200">
                         Amount
+                      </th>
+                      <th className="px-4 py-2 text-center text-sm font-medium text-gray-900 dark:text-gray-200">
+                        Actions
                       </th>
                     </tr>
                   </thead>
@@ -171,12 +177,23 @@ export function ClientDetails({
                               £{visit.amount.toFixed(2)}
                             </span>
                           </td>
+                          <td className="px-4 py-2">
+                            <div className="flex items-center justify-center">
+                              <button
+                                onClick={() => handleEditVisit(visit)}
+                                className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/50 rounded-lg transition-colors"
+                                title="Edit visit"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
                         <td
-                          colSpan={3}
+                          colSpan={4}
                           className="px-4 py-2 text-center text-sm text-gray-500 dark:text-gray-400"
                         >
                           No visit history
@@ -194,7 +211,6 @@ export function ClientDetails({
             <button
               data-testid="add-new-entry-button"
               onClick={() => {
-               
                 setIsAddEntryOpen(true);
               }}
               className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 dark:from-green-700 dark:to-green-800 text-white rounded-lg hover:from-green-700 hover:to-green-800 dark:hover:from-green-800 dark:hover:to-green-900 transition-all font-semibold text-base shadow-md min-w-[140px] min-h-[48px] visible"
@@ -226,6 +242,17 @@ export function ClientDetails({
         }}
         initialStep="income"
         initialClientName={client.name}
+      />
+
+      {/* Edit Visit Modal */}
+      <EditVisitModal
+        isOpen={isEditVisitOpen}
+        onClose={() => {
+          setIsEditVisitOpen(false);
+          setSelectedVisit(null);
+        }}
+        onSubmit={handleEditVisitSubmit}
+        visit={selectedVisit}
       />
     </>
   );

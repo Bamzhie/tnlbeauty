@@ -1,8 +1,11 @@
 import axios from "axios";
 
-const API_BASE_URL = 'https://tnlbeauty-api.onrender.com'; 
+const API_BASE_URL =
+  import.meta.env.PROD
+    ? 'https://tnlbeauty-api.onrender.com'
+    : 'http://localhost:3000';
 
-// DTO Interfaces (similar to reference)
+// DTO Interfaces
 export interface AddIncomeDto {
   clientName: string;
   service: string;
@@ -20,6 +23,13 @@ export interface AddIncomeToClientDto {
   service: string;
   amount: number;
   date?: string;
+}
+
+export interface UpdateClientDto {
+  name?: string;
+  visitId?: string;
+  newService?: string;
+  newAmount?: number;
 }
 
 // Response Interfaces
@@ -56,7 +66,19 @@ export interface AddIncomeToClientResponse {
   totalSpent: number;
 }
 
+export interface UpdateClientResponse {
+  success: boolean;
+  message: string;
+  client: Client;
+  updatedTransaction?: Transaction;
+}
 
+export interface DeleteClientResponse {
+  success: boolean;
+  message: string;
+  deletedClientId: string;
+  deletedTransactionsCount: number;
+}
 
 // Entity Interfaces
 export interface Client {
@@ -77,6 +99,7 @@ export interface VisitHistory {
   service: string;
   amount: number;
   _id: string;
+  visitId: string;
 }
 
 export interface Transaction {
@@ -138,12 +161,20 @@ const api = {
     return response.data;
   },
 
-   resetDatabase: async (): Promise<ResetDatabaseResponse> => {
-    const response = await axios.delete(`${API_BASE_URL}/tracker/reset`);
+  updateClient: async (id: string, dto: UpdateClientDto): Promise<UpdateClientResponse> => {
+    const response = await axios.patch(`${API_BASE_URL}/tracker/clients/${id}`, dto);
     return response.data;
   },
 
+  deleteClient: async (id: string): Promise<DeleteClientResponse> => {
+    const response = await axios.delete(`${API_BASE_URL}/tracker/clients/${id}`);
+    return response.data;
+  },
 
+  resetDatabase: async (): Promise<ResetDatabaseResponse> => {
+    const response = await axios.delete(`${API_BASE_URL}/tracker/reset`);
+    return response.data;
+  },
 };
 
 export default api;
