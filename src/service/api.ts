@@ -2,7 +2,7 @@ import axios from "axios";
 
 const API_BASE_URL =
   import.meta.env.PROD
-    ? 'https://tnlbeauty-api.onrender.com'
+    ? 'https://api.tnlbeauty.com'
     : 'http://localhost:3000';
 
 // DTO Interfaces
