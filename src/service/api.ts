@@ -19,6 +19,7 @@ export interface AddExpenseDto {
   date?: string;
 }
 
+
 export interface AddIncomeToClientDto {
   service: string;
   amount: number;

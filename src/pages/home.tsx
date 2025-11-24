@@ -103,7 +103,7 @@ export default function ClientRevenueApp() {
   const [isDeleteClientOpen, setIsDeleteClientOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<ClientDetail | null>(null);
 
-  // Initialize dark mode based on localStorage or system preference
+  
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme");
     const prefersDark = window.matchMedia(
