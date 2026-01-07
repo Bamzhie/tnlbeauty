@@ -14,7 +14,7 @@ import api, {
   Client as ApiClient,
   Transaction as ApiTransaction,
 } from "../service/api";
-import { MonthFilter } from "../components/MonthFilter";
+import { Filter } from "../components/Filter";
 import { ClientListTable } from "../components/ClientListTable";
 import { AddEntryModal } from "../components/AddEntryModal";
 import { EditClientModal } from "../components/EditClientModal";
@@ -82,8 +82,14 @@ export default function ClientRevenueApp() {
   const [clients, setClients] = useState<Client[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [apiClients, setApiClients] = useState<ApiClient[]>([]);
-  const [selectedMonth, setSelectedMonth] = useState<string | number>("all");
-  const [selectedYear, setSelectedYear] = useState<number>(
+  // Dashboard & Expenses State
+  const [dashboardMonth, setDashboardMonth] = useState<string | number>("all");
+  const [dashboardYear, setDashboardYear] = useState<number>(
+    new Date().getFullYear()
+  );
+
+  // Analytics State
+  const [analyticsYear, setAnalyticsYear] = useState<number>(
     new Date().getFullYear()
   );
   const [currentPage, setCurrentPage] = useState<
@@ -101,9 +107,10 @@ export default function ClientRevenueApp() {
   const [isEditClientOpen, setIsEditClientOpen] = useState(false);
   const [clientToEdit, setClientToEdit] = useState<ClientDetail | null>(null);
   const [isDeleteClientOpen, setIsDeleteClientOpen] = useState(false);
-  const [clientToDelete, setClientToDelete] = useState<ClientDetail | null>(null);
+  const [clientToDelete, setClientToDelete] = useState<ClientDetail | null>(
+    null
+  );
 
-  
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme");
     const prefersDark = window.matchMedia(
@@ -147,10 +154,21 @@ export default function ClientRevenueApp() {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const response: AllDataResponse = await api.fetchAllData(
-          selectedMonth !== "all" ? Number(selectedMonth) : undefined,
-          selectedYear
-        );
+        let response: AllDataResponse;
+
+        if (currentPage === "analytics") {
+          // For analytics, fetch data for the selected year (all months)
+          response = await api.fetchAllData(undefined, analyticsYear);
+        } else if (currentPage === "clients") {
+          // For clients, fetch ALL data (no filters)
+          response = await api.fetchAllData();
+        } else {
+          // For dashboard, expenses, settings (uses dashboard filters)
+          response = await api.fetchAllData(
+            dashboardMonth !== "all" ? Number(dashboardMonth) : undefined,
+            dashboardYear
+          );
+        }
 
         const adaptedClients = response.data.clients.map(
           adaptApiClientToClient
@@ -169,35 +187,59 @@ export default function ClientRevenueApp() {
       }
     };
     fetchData();
-  }, [selectedMonth, selectedYear]);
+  }, [dashboardMonth, dashboardYear, analyticsYear, currentPage]);
+
+  // Filtering Logic based on current page context
+  const activeMonth =
+    currentPage === "analytics" || currentPage === "clients"
+      ? "all"
+      : dashboardMonth;
+  const activeYear =
+    currentPage === "clients"
+      ? undefined
+      : currentPage === "analytics"
+      ? analyticsYear
+      : dashboardYear;
 
   const monthClients = useMemo(() => {
+    // If we are in clients view, we want all clients sorted by date
+    if (currentPage === "clients") {
+      return [...clients].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+    }
+
     const filteredClients = clients.filter((c) => {
-      if (selectedMonth === "all")
-        return new Date(c.date).getFullYear() === Number(selectedYear);
+      if (activeMonth === "all")
+        return activeYear
+          ? new Date(c.date).getFullYear() === Number(activeYear)
+          : true;
       return c.visitHistory.some((v) => {
         const d = new Date(v.date);
         return (
-          d.getMonth() === Number(selectedMonth) &&
-          d.getFullYear() === Number(selectedYear)
+          d.getMonth() === Number(activeMonth) &&
+          d.getFullYear() === Number(activeYear)
         );
       });
     });
-   
+
     return filteredClients;
-  }, [clients, selectedMonth, selectedYear]);
+  }, [clients, activeMonth, activeYear, currentPage]);
 
   const monthTransactions = useMemo(() => {
+    if (currentPage === "clients") {
+      return transactions;
+    }
     return transactions.filter((t) => {
       const d = new Date(t.date);
-      if (selectedMonth === "all")
-        return d.getFullYear() === Number(selectedYear);
+      if (activeMonth === "all")
+        return activeYear ? d.getFullYear() === Number(activeYear) : true;
       return (
-        d.getMonth() === Number(selectedMonth) &&
-        d.getFullYear() === Number(selectedYear)
+        d.getMonth() === Number(activeMonth) &&
+        d.getFullYear() === Number(activeYear)
       );
     });
-  }, [transactions, selectedMonth, selectedYear]);
+  }, [transactions, activeMonth, activeYear, currentPage]);
 
   const incomeTransactions = useMemo(
     () => monthTransactions.filter((t) => t.type === "income"),
@@ -251,22 +293,22 @@ export default function ClientRevenueApp() {
       if (!visits[name]) visits[name] = [];
       c.visitHistory.forEach((v) => {
         if (
-          selectedMonth === "all" ||
-          new Date(v.date).getMonth() === Number(selectedMonth)
+          activeMonth === "all" ||
+          new Date(v.date).getMonth() === Number(activeMonth)
         ) {
           visits[name].push(v.date);
         }
       });
     });
     return visits;
-  }, [monthClients, selectedMonth]);
+  }, [monthClients, activeMonth]);
 
   const retentionRate = useMemo(() => {
     const totalClients = Object.keys(clientVisits).length;
     const returningClients = Object.values(clientVisits).filter(
       (visits) => visits.length > 1
     ).length;
-  
+
     return totalClients > 0
       ? ((returningClients / totalClients) * 100).toFixed(1)
       : "0.0";
@@ -359,16 +401,16 @@ export default function ClientRevenueApp() {
       date: client.date,
       numberOfVisits: client.visitHistory.filter((v) => {
         const d = new Date(v.date);
-        if (selectedMonth === "all") {
-          return d.getFullYear() === Number(selectedYear);
+        if (activeMonth === "all") {
+          return activeYear ? d.getFullYear() === Number(activeYear) : true;
         }
         return (
-          d.getMonth() === Number(selectedMonth) &&
-          d.getFullYear() === Number(selectedYear)
+          d.getMonth() === Number(activeMonth) &&
+          d.getFullYear() === Number(activeYear)
         );
       }).length,
     }));
-  }, [monthClients, incomeTransactions, selectedMonth, selectedYear]);
+  }, [monthClients, incomeTransactions, activeMonth, activeYear]);
 
   const recentTransactions = useMemo(() => {
     return [...monthTransactions]
@@ -507,33 +549,38 @@ export default function ClientRevenueApp() {
     setIsEditClientOpen(true);
   }, []);
 
-  const handleEditClientSubmit = useCallback(async (newName: string) => {
-    if (!clientToEdit) return;
+  const handleEditClientSubmit = useCallback(
+    async (newName: string) => {
+      if (!clientToEdit) return;
 
-    try {
-      const response = await api.updateClient(clientToEdit.id, { name: newName });
-      
-      const adaptedClient = adaptApiClientToClient(response.client);
-      
-      setClients((prev) =>
-        prev.map((c) => (c.id === adaptedClient.id ? adaptedClient : c))
-      );
-      
-      setApiClients((prev) =>
-        prev.map((c) => (c._id === response.client._id ? response.client : c))
-      );
+      try {
+        const response = await api.updateClient(clientToEdit.id, {
+          name: newName,
+        });
 
-      if (selectedClient && selectedClient.id === adaptedClient.id) {
-        setSelectedClient(adaptedClient);
+        const adaptedClient = adaptApiClientToClient(response.client);
+
+        setClients((prev) =>
+          prev.map((c) => (c.id === adaptedClient.id ? adaptedClient : c))
+        );
+
+        setApiClients((prev) =>
+          prev.map((c) => (c._id === response.client._id ? response.client : c))
+        );
+
+        if (selectedClient && selectedClient.id === adaptedClient.id) {
+          setSelectedClient(adaptedClient);
+        }
+
+        setIsEditClientOpen(false);
+        setClientToEdit(null);
+      } catch (error) {
+        console.error("Error updating client:", error);
+        throw error;
       }
-      
-      setIsEditClientOpen(false);
-      setClientToEdit(null);
-    } catch (error) {
-      console.error("Error updating client:", error);
-      throw error;
-    }
-  }, [clientToEdit, selectedClient]);
+    },
+    [clientToEdit, selectedClient]
+  );
 
   const handleDeleteClient = useCallback((client: ClientDetail) => {
     setClientToDelete(client);
@@ -545,10 +592,10 @@ export default function ClientRevenueApp() {
 
     try {
       await api.deleteClient(clientToDelete.id);
-      
+
       setClients((prev) => prev.filter((c) => c.id !== clientToDelete.id));
       setApiClients((prev) => prev.filter((c) => c._id !== clientToDelete.id));
-      setTransactions((prev) => 
+      setTransactions((prev) =>
         prev.filter((t) => t.clientId !== clientToDelete.id)
       );
 
@@ -556,52 +603,57 @@ export default function ClientRevenueApp() {
         setIsClientDetailsOpen(false);
         setSelectedClient(null);
       }
-      
-      toast.success('Client deleted successfully');
+
+      toast.success("Client deleted successfully");
       setIsDeleteClientOpen(false);
       setClientToDelete(null);
     } catch (error) {
       console.error("Error deleting client:", error);
-      toast.error('Failed to delete client');
+      toast.error("Failed to delete client");
       throw error;
     }
   }, [clientToDelete, selectedClient]);
 
-  const handleEditVisit = useCallback(async (visitId: string, service: string, amount: number) => {
-    if (!selectedClient) return;
+  const handleEditVisit = useCallback(
+    async (visitId: string, service: string, amount: number) => {
+      if (!selectedClient) return;
 
-    try {
-      const response = await api.updateClient(selectedClient.id, {
-        visitId,
-        newService: service,
-        newAmount: amount,
-      });
+      try {
+        const response = await api.updateClient(selectedClient.id, {
+          visitId,
+          newService: service,
+          newAmount: amount,
+        });
 
-      const adaptedClient = adaptApiClientToClient(response.client);
-      
-      setClients((prev) =>
-        prev.map((c) => (c.id === adaptedClient.id ? adaptedClient : c))
-      );
-      
-      setApiClients((prev) =>
-        prev.map((c) => (c._id === response.client._id ? response.client : c))
-      );
+        const adaptedClient = adaptApiClientToClient(response.client);
 
-      setSelectedClient(adaptedClient);
-
-      if (response.updatedTransaction) {
-        const adaptedTransaction = adaptApiTransactionToTransaction(
-          response.updatedTransaction
+        setClients((prev) =>
+          prev.map((c) => (c.id === adaptedClient.id ? adaptedClient : c))
         );
-        setTransactions((prev) =>
-          prev.map((t) => (t.id === adaptedTransaction.id ? adaptedTransaction : t))
+
+        setApiClients((prev) =>
+          prev.map((c) => (c._id === response.client._id ? response.client : c))
         );
+
+        setSelectedClient(adaptedClient);
+
+        if (response.updatedTransaction) {
+          const adaptedTransaction = adaptApiTransactionToTransaction(
+            response.updatedTransaction
+          );
+          setTransactions((prev) =>
+            prev.map((t) =>
+              t.id === adaptedTransaction.id ? adaptedTransaction : t
+            )
+          );
+        }
+      } catch (error) {
+        console.error("Error editing visit:", error);
+        throw error;
       }
-    } catch (error) {
-      console.error("Error editing visit:", error);
-      throw error;
-    }
-  }, [selectedClient]);
+    },
+    [selectedClient]
+  );
 
   // report download
   const downloadDashboardReport = () => {
@@ -643,8 +695,8 @@ export default function ClientRevenueApp() {
       [`Total Clients,${monthClients.length}`],
       [
         `Period,${
-          selectedMonth === "all" ? "All Months" : `Month ${selectedMonth}`
-        } ${selectedYear}`,
+          dashboardMonth === "all" ? "All Months" : `Month ${dashboardMonth}`
+        } ${dashboardYear}`,
       ],
     ];
 
@@ -665,8 +717,8 @@ export default function ClientRevenueApp() {
     link.setAttribute("href", url);
     link.setAttribute(
       "download",
-      `income_expense_report_${selectedYear}${
-        selectedMonth === "all" ? "" : `_${selectedMonth}`
+      `income_expense_report_${dashboardYear}${
+        dashboardMonth === "all" ? "" : `_${dashboardMonth}`
       }.csv`
     );
     link.style.visibility = "hidden";
@@ -697,12 +749,11 @@ export default function ClientRevenueApp() {
                     </h1>
                   </div>
                   <div className="flex items-center gap-4">
-                    <MonthFilter
-                      selectedMonth={selectedMonth}
-                      selectedYear={selectedYear}
-                      onMonthChange={setSelectedMonth}
-                      onYearChange={setSelectedYear}
-                      hideLabels={true}
+                    <Filter
+                      selectedMonth={dashboardMonth}
+                      selectedYear={dashboardYear}
+                      onMonthChange={setDashboardMonth}
+                      onYearChange={setDashboardYear}
                     />
                   </div>
                 </div>
@@ -957,13 +1008,7 @@ export default function ClientRevenueApp() {
                   Clients
                 </h1>
                 <div className="flex items-center gap-4">
-                  <MonthFilter
-                    selectedMonth={selectedMonth}
-                    selectedYear={selectedYear}
-                    onMonthChange={setSelectedMonth}
-                    onYearChange={setSelectedYear}
-                    hideLabels={true}
-                  />
+                  {/* No filter for clients page */}
                 </div>
               </div>
               <ClientListTable
@@ -997,12 +1042,11 @@ export default function ClientRevenueApp() {
                   Expenses
                 </h1>
                 <div className="flex items-center gap-4">
-                  <MonthFilter
-                    selectedMonth={selectedMonth}
-                    selectedYear={selectedYear}
-                    onMonthChange={setSelectedMonth}
-                    onYearChange={setSelectedYear}
-                    hideLabels={true}
+                  <Filter
+                    selectedMonth={dashboardMonth}
+                    selectedYear={dashboardYear}
+                    onMonthChange={setDashboardMonth}
+                    onYearChange={setDashboardYear}
                   />
                 </div>
               </div>
@@ -1022,12 +1066,11 @@ export default function ClientRevenueApp() {
                   Settings
                 </h1>
                 <div className="flex items-center gap-4">
-                  <MonthFilter
-                    selectedMonth={selectedMonth}
-                    selectedYear={selectedYear}
-                    onMonthChange={setSelectedMonth}
-                    onYearChange={setSelectedYear}
-                    hideLabels={true}
+                  <Filter
+                    selectedMonth={dashboardMonth}
+                    selectedYear={dashboardYear}
+                    onMonthChange={setDashboardMonth}
+                    onYearChange={setDashboardYear}
                   />
                 </div>
               </div>
@@ -1048,12 +1091,10 @@ export default function ClientRevenueApp() {
                   Analytics
                 </h1>
                 <div className="flex items-center gap-4">
-                  <MonthFilter
-                    selectedMonth={selectedMonth}
-                    selectedYear={selectedYear}
-                    onMonthChange={setSelectedMonth}
-                    onYearChange={setSelectedYear}
-                    hideLabels={true}
+                  <Filter
+                    selectedYear={analyticsYear}
+                    onYearChange={setAnalyticsYear}
+                    showMonth={false}
                   />
                 </div>
               </div>
