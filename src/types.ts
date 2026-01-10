@@ -4,6 +4,7 @@ export interface Client {
   name: string;
   service: string;
   date: string;
+  createdAt: string;
   visitHistory: Visit[];
 }
 
@@ -19,7 +20,7 @@ export interface Transaction {
   id: string;
   clientId: string;
   date: string;
-  type: 'income' | 'expense';
+  type: "income" | "expense";
   amount: number;
   category?: string;
   service?: string;

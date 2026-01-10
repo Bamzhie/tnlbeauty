@@ -57,6 +57,7 @@ const adaptApiClientToClient = (apiClient: ApiClient): Client => ({
   name: apiClient.name,
   service: apiClient.service,
   date: apiClient.date,
+  createdAt: apiClient.createdAt,
   visitHistory: apiClient.visitHistory.map((visit) => ({
     id: visit._id,
     visitId: visit.visitId,
@@ -84,14 +85,13 @@ export default function ClientRevenueApp() {
   const [apiClients, setApiClients] = useState<ApiClient[]>([]);
   // Dashboard & Expenses State
   const [dashboardMonth, setDashboardMonth] = useState<string | number>("all");
-  const [dashboardYear, setDashboardYear] = useState<number>(
+  const [dashboardYear, setDashboardYear] = useState<string | number>(
     new Date().getFullYear()
   );
 
   // Analytics State
-  const [analyticsYear, setAnalyticsYear] = useState<number>(
-    new Date().getFullYear()
-  );
+  const [analyticsMonth, setAnalyticsMonth] = useState<string | number>("all");
+  const [analyticsYear, setAnalyticsYear] = useState<string | number>("all");
   const [currentPage, setCurrentPage] = useState<
     "overview" | "clients" | "expenses" | "settings" | "analytics"
   >("overview");
@@ -157,17 +157,20 @@ export default function ClientRevenueApp() {
         let response: AllDataResponse;
 
         if (currentPage === "analytics") {
-          // For analytics, fetch data for the selected year (all months)
-          response = await api.fetchAllData(undefined, analyticsYear);
+          // For analytics, fetch data for the selected year (all months) or all time
+          response = await api.fetchAllData(
+            analyticsMonth !== "all" ? Number(analyticsMonth) : undefined,
+            analyticsYear === "all" ? undefined : Number(analyticsYear)
+          );
         } else if (currentPage === "clients") {
           // For clients, fetch ALL data (no filters)
           response = await api.fetchAllData();
         } else {
           // For dashboard, expenses, settings (uses dashboard filters)
-          response = await api.fetchAllData(
-            dashboardMonth !== "all" ? Number(dashboardMonth) : undefined,
-            dashboardYear
-          );
+          // We fetch ALL data and let the frontend filter it.
+          // This is necessary because backend filtering uses 'date' (latest visit),
+          // which would exclude clients created in 2025 but visited in 2026.
+          response = await api.fetchAllData();
         }
 
         const adaptedClients = response.data.clients.map(
@@ -187,12 +190,20 @@ export default function ClientRevenueApp() {
       }
     };
     fetchData();
-  }, [dashboardMonth, dashboardYear, analyticsYear, currentPage]);
+  }, [
+    dashboardMonth,
+    dashboardYear,
+    analyticsYear,
+    analyticsMonth,
+    currentPage,
+  ]);
 
   // Filtering Logic based on current page context
   const activeMonth =
-    currentPage === "analytics" || currentPage === "clients"
+    currentPage === "clients"
       ? "all"
+      : currentPage === "analytics"
+      ? analyticsMonth
       : dashboardMonth;
   const activeYear =
     currentPage === "clients"
@@ -210,17 +221,28 @@ export default function ClientRevenueApp() {
     }
 
     const filteredClients = clients.filter((c) => {
-      if (activeMonth === "all")
-        return activeYear
-          ? new Date(c.date).getFullYear() === Number(activeYear)
-          : true;
-      return c.visitHistory.some((v) => {
-        const d = new Date(v.date);
-        return (
-          d.getMonth() === Number(activeMonth) &&
-          d.getFullYear() === Number(activeYear)
-        );
-      });
+      // Use createdAt if available, otherwise fallback to date.
+      // Ensure we are parsing the date string correctly.
+      const dateToUse = c.createdAt || c.date;
+      const d = new Date(dateToUse);
+      const clientYear = d.getFullYear();
+      const clientMonth = d.getMonth();
+
+      const targetYear =
+        activeYear && activeYear !== "all" ? Number(activeYear) : null;
+      const targetMonth = activeMonth !== "all" ? Number(activeMonth) : null;
+
+      // Filter by Year
+      if (targetYear !== null && clientYear !== targetYear) {
+        return false;
+      }
+
+      // Filter by Month (only if month is selected)
+      if (targetMonth !== null && clientMonth !== targetMonth) {
+        return false;
+      }
+
+      return true;
     });
 
     return filteredClients;
@@ -233,10 +255,14 @@ export default function ClientRevenueApp() {
     return transactions.filter((t) => {
       const d = new Date(t.date);
       if (activeMonth === "all")
-        return activeYear ? d.getFullYear() === Number(activeYear) : true;
+        return activeYear && activeYear !== "all"
+          ? d.getFullYear() === Number(activeYear)
+          : true;
       return (
         d.getMonth() === Number(activeMonth) &&
-        d.getFullYear() === Number(activeYear)
+        (activeYear && activeYear !== "all"
+          ? d.getFullYear() === Number(activeYear)
+          : true)
       );
     });
   }, [transactions, activeMonth, activeYear, currentPage]);
@@ -276,15 +302,17 @@ export default function ClientRevenueApp() {
   }, [expenseTransactions]);
 
   const serviceData = useMemo<ServiceCount[]>(() => {
-    const counts = monthClients.reduce((acc, c) => {
-      acc[c.service] = (acc[c.service] || 0) + 1;
+    const counts = incomeTransactions.reduce((acc, t) => {
+      if (t.service) {
+        acc[t.service] = (acc[t.service] || 0) + 1;
+      }
       return acc;
     }, {} as Record<string, number>);
     return Object.entries(counts)
       .map(([service, count]) => ({ service, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 4);
-  }, [monthClients]);
+  }, [incomeTransactions]);
 
   const clientVisits = useMemo<Record<string, string[]>>(() => {
     const visits: Record<string, string[]> = {};
@@ -402,11 +430,15 @@ export default function ClientRevenueApp() {
       numberOfVisits: client.visitHistory.filter((v) => {
         const d = new Date(v.date);
         if (activeMonth === "all") {
-          return activeYear ? d.getFullYear() === Number(activeYear) : true;
+          return activeYear && activeYear !== "all"
+            ? d.getFullYear() === Number(activeYear)
+            : true;
         }
         return (
           d.getMonth() === Number(activeMonth) &&
-          d.getFullYear() === Number(activeYear)
+          (activeYear && activeYear !== "all"
+            ? d.getFullYear() === Number(activeYear)
+            : true)
         );
       }).length,
     }));
@@ -666,7 +698,7 @@ export default function ClientRevenueApp() {
     ];
 
     const incomeData = incomeTransactions.map((tx) => {
-      const client = monthClients.find((c) => c.id === tx.clientId);
+      const client = clients.find((c) => c.id === tx.clientId);
       return [
         "Income",
         `£${tx.amount.toFixed(2)}`,
@@ -816,7 +848,7 @@ export default function ClientRevenueApp() {
                     <div className="space-y-4">
                       {recentTransactions.length > 0 ? (
                         recentTransactions.map((tx) => {
-                          const client = monthClients.find(
+                          const client = clients.find(
                             (c) => c.id === tx.clientId
                           );
                           const isIncome = tx.type === "income";
@@ -1092,9 +1124,10 @@ export default function ClientRevenueApp() {
                 </h1>
                 <div className="flex items-center gap-4">
                   <Filter
+                    selectedMonth={analyticsMonth}
                     selectedYear={analyticsYear}
+                    onMonthChange={setAnalyticsMonth}
                     onYearChange={setAnalyticsYear}
-                    showMonth={false}
                   />
                 </div>
               </div>
