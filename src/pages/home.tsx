@@ -157,11 +157,9 @@ export default function ClientRevenueApp() {
         let response: AllDataResponse;
 
         if (currentPage === "analytics") {
-          // For analytics, fetch data for the selected year (all months) or all time
-          response = await api.fetchAllData(
-            analyticsMonth !== "all" ? Number(analyticsMonth) : undefined,
-            analyticsYear === "all" ? undefined : Number(analyticsYear)
-          );
+          // For analytics, fetch ALL data and let frontend filter.
+          // This ensures we have all transactions and clients to calculate metrics correctly.
+          response = await api.fetchAllData();
         } else if (currentPage === "clients") {
           // For clients, fetch ALL data (no filters)
           response = await api.fetchAllData();
@@ -314,22 +312,26 @@ export default function ClientRevenueApp() {
       .slice(0, 4);
   }, [incomeTransactions]);
 
+  const activeClients = useMemo(() => {
+    if (currentPage === "clients") return clients;
+    // For analytics/metrics, we want clients who have transactions in the selected period
+    const activeClientIds = new Set(
+      monthTransactions.map((t) => t.clientId).filter(Boolean)
+    );
+    return clients.filter((c) => activeClientIds.has(c.id));
+  }, [clients, monthTransactions, currentPage]);
+
   const clientVisits = useMemo<Record<string, string[]>>(() => {
     const visits: Record<string, string[]> = {};
-    monthClients.forEach((c) => {
+    activeClients.forEach((c) => {
       const name = c.name.trim().toLowerCase();
       if (!visits[name]) visits[name] = [];
       c.visitHistory.forEach((v) => {
-        if (
-          activeMonth === "all" ||
-          new Date(v.date).getMonth() === Number(activeMonth)
-        ) {
-          visits[name].push(v.date);
-        }
+        visits[name].push(v.date);
       });
     });
     return visits;
-  }, [monthClients, activeMonth]);
+  }, [activeClients]);
 
   const retentionRate = useMemo(() => {
     const totalClients = Object.keys(clientVisits).length;
