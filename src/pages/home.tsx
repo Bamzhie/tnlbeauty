@@ -799,12 +799,12 @@ export default function ClientRevenueApp() {
                     £{totalIncome.toFixed(2)}
                   </p>
                 </div>
-                <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-xl shadow-sm border border-red-300 dark:border-red-600">
+                <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-xl shadow-sm border border-purple-300 dark:border-purple-600">
                   <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-1">
-                    Total Expenses
+                    Total Visits
                   </p>
-                  <p className="text-lg sm:text-2xl font-bold text-red-700 dark:text-red-400">
-                    £{totalExpenses.toFixed(2)}
+                  <p className="text-lg sm:text-2xl font-bold text-purple-700 dark:text-purple-400">
+                    {incomeTransactions.length}
                   </p>
                 </div>
                 <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-600">
